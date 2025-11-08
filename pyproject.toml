@@ -1,0 +1,172 @@
+[project]
+name = "fips-psn-emulator-service"
+version = "0.1.0"
+description = "PSN Partner Emulator - A serverless tool for simulating partner API workflows"
+authors = [
+    {name = "PSN Team", email = "team@example.com"}
+]
+readme = "README.md"
+requires-python = ">=3.12"
+license = {text = "MIT"}
+
+dependencies = [
+    "pydantic>=2.10.0",
+    "pydantic-settings>=2.6.0",
+    "aws-lambda-powertools>=3.4.0",
+    "boto3>=1.35.0",
+    "requests>=2.32.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3.0",
+    "pytest-cov>=6.0.0",
+    "pytest-mock>=3.14.0",
+    "pytest-asyncio>=0.24.0",
+    "moto>=5.0.0",
+    "black>=24.10.0",
+    "ruff>=0.8.0",
+    "mypy>=1.13.0",
+    "isort>=5.13.0",
+    "bandit>=1.8.0",
+    "pre-commit>=4.0.0",
+    "debugpy>=1.8.0",
+    "types-requests>=2.32.0",
+    "boto3-stubs[lambda,dynamodb,s3]>=1.35.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src"]
+
+[tool.black]
+line-length = 88
+target-version = ['py312']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | build
+  | dist
+  | terraform
+)/
+'''
+
+[tool.isort]
+profile = "black"
+line_length = 88
+multi_line_output = 3
+include_trailing_comma = true
+force_grid_wrap = 0
+use_parentheses = true
+ensure_newline_before_comments = true
+skip_glob = ["terraform/*", ".venv/*", "build/*"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+select = ["E", "F", "I", "W", "B", "C90", "N", "UP", "ANN", "S", "A", "COM", "DTZ", "T20", "RET", "SIM", "ARG", "PTH", "ERA", "PD", "PL", "TRY", "RUF"]
+ignore = ["ANN101", "ANN102", "ANN401", "S104", "TRY003", "PLR0913"]
+extend-exclude = [
+    ".git",
+    ".mypy_cache",
+    ".pytest_cache",
+    ".ruff_cache",
+    ".venv",
+    "__pycache__",
+    "build",
+    "dist",
+    "terraform",
+]
+
+[tool.ruff.per-file-ignores]
+"tests/**/*.py" = ["S101", "ANN", "PLR2004"]
+"**/test_*.py" = ["S101", "ANN", "PLR2004"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+ignore_missing_imports = true
+disallow_untyped_defs = true
+warn_unused_ignores = true
+warn_redundant_casts = true
+warn_unused_configs = true
+show_error_codes = true
+show_error_context = true
+pretty = true
+exclude = [
+    "terraform",
+    ".venv",
+    "build",
+    "dist",
+]
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+disallow_untyped_defs = false
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["src", "tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "-ra",
+    "--strict-markers",
+    "--strict-config",
+    "--cov=src",
+    "--cov-report=term-missing",
+    "--cov-report=html",
+    "--cov-report=xml",
+    "--cov-fail-under=80",
+]
+markers = [
+    "unit: Unit tests",
+    "integration: Integration tests",
+    "e2e: End-to-end tests",
+    "slow: Slow running tests",
+]
+filterwarnings = [
+    "error",
+    "ignore::DeprecationWarning",
+]
+
+[tool.coverage.run]
+source = ["src"]
+omit = [
+    "*/tests/*",
+    "*/__pycache__/*",
+    "*/.venv/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+    "@abstractmethod",
+]
+
+[tool.bandit]
+exclude_dirs = ["tests", ".venv", "build"]
+skips = ["B101"]
+
+[dependency-groups]
+dev = [
+    "email-validator>=2.3.0",
+    "pytest>=8.0",
+    "pytest-cov>=7.0.0",
+]
