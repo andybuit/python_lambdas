@@ -17,7 +17,8 @@
       "Bash(git commit:*)",
       "Bash(gh repo create:*)",
       "Bash(gh auth login:*)",
-      "Bash(git remote remove:*)"
+      "Bash(git remote remove:*)",
+      "Bash(git push:*)"
     ],
     "deny": [],
     "ask": []

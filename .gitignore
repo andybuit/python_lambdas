@@ -90,3 +90,5 @@ logs/
 
 # Package files
 uv.lock
+
+.claude/
