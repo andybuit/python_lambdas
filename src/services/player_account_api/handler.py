@@ -6,14 +6,14 @@ from typing import Any
 from aws_lambda_powertools.utilities.typing import LambdaContext
 from pydantic import ValidationError
 
+from src.libs.common.exceptions import PSNEmulatorException, ValidationException
+from src.libs.common.logger import get_logger
+from src.libs.common.models import ErrorResponse
 from src.services.player_account_api.models import (
     CreatePlayerRequest,
     UpdatePlayerRequest,
 )
 from src.services.player_account_api.service import PlayerAccountService
-from src.libs.common.exceptions import PSNEmulatorException, ValidationException
-from src.libs.common.logger import get_logger
-from src.libs.common.models import ErrorResponse
 
 logger = get_logger(__name__)
 
@@ -36,7 +36,9 @@ def lambda_handler(event: dict[str, Any], context: LambdaContext) -> dict[str, A
         ValidationException: When request validation fails
         PSNEmulatorException: For other service-level errors
     """
-    logger.info("Player Account API request received", extra={"path": event.get("path")})
+    logger.info(
+        "Player Account API request received", extra={"path": event.get("path")}
+    )
 
     try:
         http_method = event.get("httpMethod", "")

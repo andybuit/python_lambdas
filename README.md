@@ -4,7 +4,7 @@ A serverless API service for simulating partner environments, enabling early int
 
 ## Overview
 
-The PSN Partner Emulator provides:
+The PSN Partner Emulator provides a collection of independent serverless microservices:
 
 - **IDP API**: Identity Provider emulation for authentication and token management
 - **Player Account API**: Player account management and statistics tracking
@@ -27,6 +27,20 @@ The PSN Partner Emulator provides:
 │            │    │ Lambda      │
 └────────────┘    └─────────────┘
 ```
+
+## Services
+
+### IDP API
+
+- **Purpose**: Authentication and token management
+- **README**: [src/services/idp_api/README.md](src/services/idp_api/README.md)
+- **Endpoints**: `/auth/*`
+
+### Player Account API
+
+- **Purpose**: Player account management and statistics
+- **README**: [src/services/player_account_api/README.md](src/services/player_account_api/README.md)
+- **Endpoints**: `/players/*`
 
 ## Tech Stack
 
@@ -106,15 +120,31 @@ fips-psn-emulator-service/
 ├── src/
 │   ├── services/               # Lambda functions (services)
 │   │   ├── idp_api/            # Identity Provider API
+│   │   │   ├── README.md       # Service-specific documentation
 │   │   │   ├── handler.py      # Lambda handler
 │   │   │   ├── service.py      # Business logic
 │   │   │   ├── models.py       # Pydantic models
 │   │   │   └── tests/          # Unit & integration tests
-│   │   └── player_account_api/ # Player Account API
-│   │       ├── handler.py
-│   │       ├── service.py
-│   │       ├── models.py
-│   │       └── tests/
+│   │   │       ├── unit/
+│   │   │       │   ├── __init__.py
+│   │   │       │   ├── test_handler.py     # Unit tests for handler
+│   │   │       │   └── test_service.py     # Unit tests for service
+│   │   │       └── integration/
+│   │   │           ├── __init__.py
+│   │   │           └── test_integration.py # Integration tests
+│   │   ├── player_account_api/ # Player Account API
+│   │   │   ├── README.md       # Service-specific documentation
+│   │   │   ├── handler.py
+│   │   │   ├── service.py
+│   │   │   ├── models.py
+│   │   │   └── tests/
+│   │   │       ├── unit/
+│   │   │       │   ├── __init__.py
+│   │   │       │   ├── test_handler.py     # Unit tests for handler
+│   │   │       │   └── test_service.py     # Unit tests for service
+│   │   │       └── integration/
+│   │   │           ├── __init__.py
+│   │   │           └── test_integration.py # Integration tests
 │   └── libs/                   # Shared libraries
 │       ├── models.py           # Common models
 │       ├── logger.py           # Logging utilities
@@ -149,6 +179,12 @@ uv run pytest -v -m integration
 # With coverage report
 uv run pytest --cov=src --cov-report=html
 open htmlcov/index.html  # View coverage report
+
+# Run specific Lambda's unit tests
+uv run pytest src/services/idp_api/tests/unit/
+
+# Run specific Lambda's integration tests
+uv run pytest src/services/player_account_api/tests/integration/
 ```
 
 #### Code Formatting
@@ -325,6 +361,13 @@ terraform output api_gateway_url
 
 ### Testing Deployed API
 
+For comprehensive testing examples, see the individual service README files:
+
+- **IDP API Testing**: [src/services/idp_api/README.md#testing](src/services/idp_api/README.md#testing)
+- **Player Account API Testing**: [src/services/player_account_api/README.md#testing](src/services/player_account_api/README.md#testing)
+
+Quick examples:
+
 ```bash
 # Set API URL
 export API_URL=$(cd terraform && terraform output -raw api_gateway_url)
@@ -334,23 +377,10 @@ curl -X POST $API_URL/auth/token \
   -H "Content-Type: application/json" \
   -d '{"username":"testuser","password":"password123"}'
 
-# Save token
-export TOKEN="<access_token_from_response>"
-
-# Test IDP API - Get user info
-curl -X GET $API_URL/auth/userinfo \
-  -H "Authorization: Bearer $TOKEN"
-
 # Test Player Account API - Create player
 curl -X POST $API_URL/players \
   -H "Content-Type: application/json" \
   -d '{"username":"player1","email":"player1@example.com"}'
-
-# Test Player Account API - Get player
-curl -X GET $API_URL/players/<player_id>
-
-# Test Player Account API - List players
-curl -X GET $API_URL/players
 ```
 
 ### Update Deployed Lambda
@@ -399,109 +429,35 @@ AWS_REGION=us-east-1
 
 ## API Documentation
 
-### IDP API Endpoints
+For detailed API documentation and examples, see the individual service README files:
 
-#### POST /auth/token
+- **IDP API**: [src/services/idp_api/README.md](src/services/idp_api/README.md)
 
-Authenticate user and receive access token.
+  - Authentication endpoints
+  - Token management
+  - User information retrieval
 
-**Request:**
+- **Player Account API**: [src/services/player_account_api/README.md](src/services/player_account_api/README.md)
+  - Player account management
+  - Player statistics
+  - Profile operations
 
-```json
-{
-  "username": "testuser",
-  "password": "password123"
-}
+### Quick API Examples
+
+```bash
+# Get API Gateway URL from Terraform
+export API_URL=$(cd terraform && terraform output -raw api_gateway_url)
+
+# Test IDP API - Authentication
+curl -X POST $API_URL/auth/token \
+  -H "Content-Type: application/json" \
+  -d '{"username":"testuser","password":"password123"}'
+
+# Test Player Account API - Create player
+curl -X POST $API_URL/players \
+  -H "Content-Type: application/json" \
+  -d '{"username":"player1","email":"player1@example.com"}'
 ```
-
-**Response:**
-
-```json
-{
-  "access_token": "...",
-  "refresh_token": "...",
-  "token_type": "Bearer",
-  "expires_in": 3600
-}
-```
-
-#### GET /auth/userinfo
-
-Get authenticated user information.
-
-**Headers:**
-
-```
-Authorization: Bearer <access_token>
-```
-
-**Response:**
-
-```json
-{
-  "user_id": "usr_001",
-  "username": "testuser",
-  "email": "testuser@example.com",
-  "is_active": true
-}
-```
-
-#### POST /auth/refresh
-
-Refresh access token using refresh token.
-
-**Request:**
-
-```json
-{
-  "refresh_token": "..."
-}
-```
-
-### Player Account API Endpoints
-
-#### POST /players
-
-Create a new player account.
-
-**Request:**
-
-```json
-{
-  "username": "player1",
-  "email": "player1@example.com",
-  "display_name": "Player One"
-}
-```
-
-#### GET /players
-
-List all player accounts.
-
-#### GET /players/{player_id}
-
-Get specific player account.
-
-#### PUT /players/{player_id}
-
-Update player account.
-
-**Request:**
-
-```json
-{
-  "display_name": "Updated Name",
-  "status": "active"
-}
-```
-
-#### DELETE /players/{player_id}
-
-Delete player account.
-
-#### GET /players/{player_id}/stats
-
-Get player statistics.
 
 ## Monitoring and Logging
 
@@ -674,8 +630,10 @@ For issues, questions, or contributions:
 
 ### Phase 1 (Current)
 
-- ✅ IDP API Lambda
-- ✅ Player Account API Lambda
+- ✅ IDP API Lambda with authentication and token management
+- ✅ Player Account API Lambda with player management
+- ✅ Individual service documentation
+- ✅ Test organization (unit/integration)
 - ✅ Terraform infrastructure
 - ✅ CI/CD pipeline
 
@@ -685,6 +643,8 @@ For issues, questions, or contributions:
 - [ ] JWT token validation
 - [ ] API Gateway authorizer
 - [ ] Additional partner APIs
+- [ ] Service-specific monitoring and alerting
+- [ ] Automated API documentation generation
 
 ### Phase 3 (Future)
 
@@ -692,6 +652,8 @@ For issues, questions, or contributions:
 - [ ] WebSocket APIs
 - [ ] Real-time event streaming
 - [ ] Advanced analytics
+- [ ] Service mesh integration
+- [ ] Multi-region deployment
 
 ## Acknowledgments
 

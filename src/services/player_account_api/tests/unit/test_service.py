@@ -2,12 +2,12 @@
 
 import pytest
 
+from src.libs.common.exceptions import ConflictException, NotFoundException
 from src.services.player_account_api.models import (
     PlayerStatus,
     UpdatePlayerRequest,
 )
 from src.services.player_account_api.service import PlayerAccountService
-from src.libs.common.exceptions import ConflictException, NotFoundException
 
 
 class TestPlayerAccountService:

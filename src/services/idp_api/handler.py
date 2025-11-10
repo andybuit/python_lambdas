@@ -6,11 +6,11 @@ from typing import Any
 from aws_lambda_powertools.utilities.typing import LambdaContext
 from pydantic import ValidationError
 
-from src.services.idp_api.models import AuthenticationRequest, TokenResponse
-from src.services.idp_api.service import IDPService
 from src.libs.common.exceptions import PSNEmulatorException, ValidationException
 from src.libs.common.logger import get_logger
 from src.libs.common.models import ErrorResponse
+from src.services.idp_api.models import AuthenticationRequest, TokenResponse
+from src.services.idp_api.service import IDPService
 
 logger = get_logger(__name__)
 
@@ -63,7 +63,9 @@ def lambda_handler(event: dict[str, Any], context: LambdaContext) -> dict[str, A
 
     except Exception as e:
         logger.exception("Unexpected error", extra={"error": str(e)})
-        return create_error_response(500, "INTERNAL_ERROR", "An unexpected error occurred")
+        return create_error_response(
+            500, "INTERNAL_ERROR", "An unexpected error occurred"
+        )
 
 
 def handle_authentication(body: dict[str, Any]) -> dict[str, Any]:

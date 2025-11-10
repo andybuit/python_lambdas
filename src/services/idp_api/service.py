@@ -4,9 +4,9 @@ import secrets
 import time
 from datetime import datetime, timedelta
 
-from src.services.idp_api.models import TokenResponse, UserInfo
 from src.libs.common.exceptions import AuthenticationException, NotFoundException
 from src.libs.common.logger import get_logger
+from src.services.idp_api.models import TokenResponse, UserInfo
 
 logger = get_logger(__name__)
 
@@ -153,9 +153,7 @@ class IDPService:
             "expires_at": str(int(time.time()) + 3600),
         }
 
-        logger.info(
-            "Token refreshed", extra={"username": token_data["username"]}
-        )
+        logger.info("Token refreshed", extra={"username": token_data["username"]})
 
         return TokenResponse(
             access_token=access_token,

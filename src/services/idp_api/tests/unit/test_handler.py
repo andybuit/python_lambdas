@@ -5,12 +5,12 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from src.libs.common.exceptions import ValidationException
 from src.services.idp_api.handler import (
     handle_authentication,
     lambda_handler,
 )
 from src.services.idp_api.models import TokenResponse
-from src.libs.common.exceptions import ValidationException
 
 
 @pytest.fixture
@@ -69,9 +69,7 @@ class TestLambdaHandler:
         assert body["access_token"] == "access-123"
         assert body["refresh_token"] == "refresh-456"
 
-    def test_authentication_missing_body(
-        self, lambda_context: MagicMock
-    ) -> None:
+    def test_authentication_missing_body(self, lambda_context: MagicMock) -> None:
         """Test authentication with missing body."""
         # Arrange
         event = {
@@ -86,9 +84,7 @@ class TestLambdaHandler:
         # Assert
         assert response["statusCode"] == 400
 
-    def test_invalid_endpoint(
-        self, lambda_context: MagicMock
-    ) -> None:
+    def test_invalid_endpoint(self, lambda_context: MagicMock) -> None:
         """Test request to invalid endpoint."""
         # Arrange
         event = {
@@ -132,9 +128,7 @@ class TestLambdaHandler:
         body = json.loads(response["body"])
         assert body["username"] == "testuser"
 
-    def test_userinfo_missing_auth_header(
-        self, lambda_context: MagicMock
-    ) -> None:
+    def test_userinfo_missing_auth_header(self, lambda_context: MagicMock) -> None:
         """Test userinfo with missing authorization header."""
         # Arrange
         event = {

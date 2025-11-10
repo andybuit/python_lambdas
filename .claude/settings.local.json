@@ -17,7 +17,11 @@
       "Bash(git commit:*)",
       "Bash(gh repo create:*)",
       "Bash(gh auth login:*)",
-      "Bash(git remote remove:*)"
+      "Bash(git remote remove:*)",
+      "Bash(mv:*)",
+      "Bash(uv run black:*)",
+      "Bash(uv run pip list:*)",
+      "Bash(uv run isort:*)"
     ],
     "deny": [],
     "ask": []

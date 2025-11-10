@@ -75,9 +75,7 @@ class TestIDPAPIIntegration:
             "httpMethod": "POST",
             "path": "/auth/token",
             "headers": {"Content-Type": "application/json"},
-            "body": json.dumps(
-                {"username": "testuser", "password": "wrongpassword"}
-            ),
+            "body": json.dumps({"username": "testuser", "password": "wrongpassword"}),
         }
 
         # Act

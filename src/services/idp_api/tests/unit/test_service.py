@@ -2,8 +2,8 @@
 
 import pytest
 
-from src.services.idp_api.service import IDPService
 from src.libs.common.exceptions import AuthenticationException, NotFoundException
+from src.services.idp_api.service import IDPService
 
 
 class TestIDPService:

@@ -112,9 +112,7 @@ class TestPlayerAccountAPIIntegration:
             "httpMethod": "POST",
             "path": "/players",
             "headers": {"Content-Type": "application/json"},
-            "body": json.dumps(
-                {"username": "player_one", "email": "one@example.com"}
-            ),
+            "body": json.dumps({"username": "player_one", "email": "one@example.com"}),
             "pathParameters": None,
         }
         lambda_handler(create_event_1, lambda_context)
@@ -124,9 +122,7 @@ class TestPlayerAccountAPIIntegration:
             "httpMethod": "POST",
             "path": "/players",
             "headers": {"Content-Type": "application/json"},
-            "body": json.dumps(
-                {"username": "player_two", "email": "two@example.com"}
-            ),
+            "body": json.dumps({"username": "player_two", "email": "two@example.com"}),
             "pathParameters": None,
         }
         lambda_handler(create_event_2, lambda_context)
