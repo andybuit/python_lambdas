@@ -6,14 +6,14 @@ from typing import Any
 from aws_lambda_powertools.utilities.typing import LambdaContext
 from pydantic import ValidationError
 
-from src.libs.common.exceptions import PSNEmulatorException, ValidationException
-from src.libs.common.logger import get_logger
-from src.libs.common.models import ErrorResponse
-from src.services.player_account_api.models import (
+from libs.common.exceptions import PSNEmulatorException, ValidationException
+from libs.common.logger import get_logger
+from libs.common.models import ErrorResponse
+from services.player_account_api.models import (
     CreatePlayerRequest,
     UpdatePlayerRequest,
 )
-from src.services.player_account_api.service import PlayerAccountService
+from services.player_account_api.service import PlayerAccountService
 
 logger = get_logger(__name__)
 
@@ -117,7 +117,7 @@ def handle_create_player(body: dict[str, Any]) -> dict[str, Any]:
             email=request.email,
             display_name=request.display_name,
         )
-        return create_success_response(201, player.model_dump())
+        return create_success_response(201, player.model_dump_json())
 
     except ValidationError as e:
         raise ValidationException(str(e)) from e
@@ -135,7 +135,7 @@ def handle_get_player(player_id: str) -> dict[str, Any]:
     """
     service = PlayerAccountService()
     player = service.get_player(player_id)
-    return create_success_response(200, player.model_dump())
+    return create_success_response(200, player.model_dump_json())
 
 
 def handle_update_player(player_id: str, body: dict[str, Any]) -> dict[str, Any]:
@@ -153,7 +153,7 @@ def handle_update_player(player_id: str, body: dict[str, Any]) -> dict[str, Any]
         request = UpdatePlayerRequest(**body)
         service = PlayerAccountService()
         player = service.update_player(player_id, request)
-        return create_success_response(200, player.model_dump())
+        return create_success_response(200, player.model_dump_json())
 
     except ValidationError as e:
         raise ValidationException(str(e)) from e
@@ -183,9 +183,8 @@ def handle_list_players() -> dict[str, Any]:
     """
     service = PlayerAccountService()
     players = service.list_players()
-    return create_success_response(
-        200, {"players": [p.model_dump() for p in players], "count": len(players)}
-    )
+    players_data = {"players": [json.loads(p.model_dump_json()) for p in players], "count": len(players)}
+    return create_success_response(200, players_data)
 
 
 def handle_get_player_stats(player_id: str) -> dict[str, Any]:
@@ -200,27 +199,28 @@ def handle_get_player_stats(player_id: str) -> dict[str, Any]:
     """
     service = PlayerAccountService()
     stats = service.get_player_stats(player_id)
-    return create_success_response(200, stats.model_dump())
+    return create_success_response(200, stats.model_dump_json())
 
 
-def create_success_response(status_code: int, data: dict[str, Any]) -> dict[str, Any]:
+def create_success_response(status_code: int, data: dict[str, Any] | str) -> dict[str, Any]:
     """
     Create a successful API Gateway response.
 
     Args:
         status_code: HTTP status code
-        data: Response data
+        data: Response data (dict or JSON string)
 
     Returns:
         dict: Formatted API Gateway response
     """
+    body = data if isinstance(data, str) else (json.dumps(data) if data else "")
     return {
         "statusCode": status_code,
         "headers": {
             "Content-Type": "application/json",
             "Access-Control-Allow-Origin": "*",
         },
-        "body": json.dumps(data) if data else "",
+        "body": body,
     }
 
 
@@ -246,5 +246,5 @@ def create_error_response(
             "Content-Type": "application/json",
             "Access-Control-Allow-Origin": "*",
         },
-        "body": json.dumps(error_response.model_dump()),
+        "body": error_response.model_dump_json(),
     }

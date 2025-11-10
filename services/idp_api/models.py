@@ -2,7 +2,7 @@
 
 from datetime import datetime
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, ConfigDict
 
 
 class AuthenticationRequest(BaseModel):
@@ -15,6 +15,8 @@ class AuthenticationRequest(BaseModel):
 
 class TokenResponse(BaseModel):
     """Response model for authentication token."""
+
+    model_config = ConfigDict(json_encoders={datetime: lambda v: v.isoformat()})
 
     access_token: str = Field(description="JWT access token")
     token_type: str = Field(default="Bearer", description="Token type")
@@ -29,6 +31,8 @@ class TokenResponse(BaseModel):
 
 class UserInfo(BaseModel):
     """User information model."""
+
+    model_config = ConfigDict(json_encoders={datetime: lambda v: v.isoformat()})
 
     user_id: str = Field(description="Unique user identifier")
     username: str = Field(description="Username")

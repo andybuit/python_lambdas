@@ -158,7 +158,7 @@ Get player statistics.
 ## Files Structure
 
 ```
-src/services/player_account_api/
+services/player_account_api/
 ├── handler.py         # Lambda handler with API Gateway routing
 ├── service.py         # Player management business logic
 ├── models.py          # Pydantic request/response models
@@ -177,16 +177,16 @@ src/services/player_account_api/
 
 ```bash
 # Run all Player Account API tests
-uv run pytest src/services/player_account_api/tests/
+uv run pytest services/player_account_api/tests/
 
 # Run only unit tests
-uv run pytest src/services/player_account_api/tests/unit/
+uv run pytest services/player_account_api/tests/unit/
 
 # Run only integration tests
-uv run pytest src/services/player_account_api/tests/integration/
+uv run pytest services/player_account_api/tests/integration/
 
 # Run with coverage
-uv run pytest src/services/player_account_api/tests/ --cov=src.services.player_account_api
+uv run pytest services/player_account_api/tests/ --cov=services.player_account_api
 ```
 
 ### Local Testing with Mock Events
@@ -207,7 +207,7 @@ Create a test event file `test_create_player.json`:
 Run handler locally:
 
 ```python
-from src.services.player_account_api.handler import lambda_handler
+from services.player_account_api.handler import lambda_handler
 import json
 
 with open('test_create_player.json') as f:
@@ -279,13 +279,13 @@ print(json.dumps(response, indent=2))
 
 ```bash
 # All tests
-uv run pytest src/services/player_account_api/tests/ -v
+uv run pytest services/player_account_api/tests/ -v
 
 # Unit tests only
-uv run pytest src/services/player_account_api/tests/unit/ -v
+uv run pytest services/player_account_api/tests/unit/ -v
 
 # Integration tests only
-uv run pytest src/services/player_account_api/tests/integration/ -v -m integration
+uv run pytest services/player_account_api/tests/integration/ -v -m integration
 ```
 
 ## Error Handling
@@ -359,7 +359,7 @@ class PlayerStats:
 Uses AWS Lambda Powertools for structured logging:
 
 ```python
-from src.libs.logger import get_logger
+from libs.logger import get_logger
 
 logger = get_logger(__name__)
 logger.info("Player created", extra={"player_id": player_id, "username": username})
@@ -376,7 +376,7 @@ Track player management metrics:
 
 ## Deployment
 
-Deployed via Terraform configuration in `terraform/`:
+Deployed via Terraform configuration in `infra/terraform/`:
 
 - Lambda function definition in `lambda.tf`
 - API Gateway routing in `api_gateway.tf`

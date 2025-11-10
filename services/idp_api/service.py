@@ -4,9 +4,9 @@ import secrets
 import time
 from datetime import datetime, timedelta
 
-from src.libs.common.exceptions import AuthenticationException, NotFoundException
-from src.libs.common.logger import get_logger
-from src.services.idp_api.models import TokenResponse, UserInfo
+from libs.common.exceptions import AuthenticationException, NotFoundException
+from libs.common.logger import get_logger
+from services.idp_api.models import TokenResponse, UserInfo
 
 logger = get_logger(__name__)
 

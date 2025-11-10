@@ -33,13 +33,13 @@ The PSN Partner Emulator provides a collection of independent serverless microse
 ### IDP API
 
 - **Purpose**: Authentication and token management
-- **README**: [src/services/idp_api/README.md](src/services/idp_api/README.md)
+- **README**: [services/idp_api/README.md](services/idp_api/README.md)
 - **Endpoints**: `/auth/*`
 
 ### Player Account API
 
 - **Purpose**: Player account management and statistics
-- **README**: [src/services/player_account_api/README.md](src/services/player_account_api/README.md)
+- **README**: [services/player_account_api/README.md](services/player_account_api/README.md)
 - **Endpoints**: `/players/*`
 
 ## Tech Stack
@@ -106,9 +106,9 @@ uv run pre-commit install
 uv run pytest -v
 
 # Check code quality
-uv run black --check src tests
-uv run ruff check src tests
-uv run mypy src
+uv run black --check services libs tests
+uv run ruff check services libs tests
+uv run mypy services libs
 ```
 
 ## Development Workflow
@@ -117,41 +117,40 @@ uv run mypy src
 
 ```
 fips-psn-emulator-service/
-├── src/
-│   ├── services/               # Lambda functions (services)
-│   │   ├── idp_api/            # Identity Provider API
-│   │   │   ├── README.md       # Service-specific documentation
-│   │   │   ├── handler.py      # Lambda handler
-│   │   │   ├── service.py      # Business logic
-│   │   │   ├── models.py       # Pydantic models
-│   │   │   └── tests/          # Unit & integration tests
-│   │   │       ├── unit/
-│   │   │       │   ├── __init__.py
-│   │   │       │   ├── test_handler.py     # Unit tests for handler
-│   │   │       │   └── test_service.py     # Unit tests for service
-│   │   │       └── integration/
-│   │   │           ├── __init__.py
-│   │   │           └── test_integration.py # Integration tests
-│   │   ├── player_account_api/ # Player Account API
-│   │   │   ├── README.md       # Service-specific documentation
-│   │   │   ├── handler.py
-│   │   │   ├── service.py
-│   │   │   ├── models.py
-│   │   │   └── tests/
-│   │   │       ├── unit/
-│   │   │       │   ├── __init__.py
-│   │   │       │   ├── test_handler.py     # Unit tests for handler
-│   │   │       │   └── test_service.py     # Unit tests for service
-│   │   │       └── integration/
-│   │   │           ├── __init__.py
-│   │   │           └── test_integration.py # Integration tests
-│   └── libs/                   # Shared libraries
-│       ├── models.py           # Common models
-│       ├── logger.py           # Logging utilities
-│       └── exceptions.py       # Custom exceptions
+├── services/                   # Lambda functions (services)
+│   ├── idp_api/                # Identity Provider API
+│   │   ├── README.md           # Service-specific documentation
+│   │   ├── handler.py          # Lambda handler
+│   │   ├── service.py          # Business logic
+│   │   ├── models.py           # Pydantic models
+│   │   └── tests/              # Unit & integration tests
+│   │       ├── unit/
+│   │       │   ├── __init__.py
+│   │       │   ├── test_handler.py     # Unit tests for handler
+│   │       │   └── test_service.py     # Unit tests for service
+│   │       └── integration/
+│   │           ├── __init__.py
+│   │           └── test_integration.py # Integration tests
+│   ├── player_account_api/     # Player Account API
+│   │   ├── README.md           # Service-specific documentation
+│   │   ├── handler.py
+│   │   ├── service.py
+│   │   ├── models.py
+│   │   └── tests/
+│   │       ├── unit/
+│   │       │   ├── __init__.py
+│   │       │   ├── test_handler.py     # Unit tests for handler
+│   │       │   └── test_service.py     # Unit tests for service
+│   │       └── integration/
+│   │           ├── __init__.py
+│   │           └── test_integration.py # Integration tests
+├── libs/                       # Shared libraries
+│   ├── models.py               # Common models
+│   ├── logger.py               # Logging utilities
+│   └── exceptions.py           # Custom exceptions
 ├── tests/
 │   └── e2e/                    # End-to-end tests
-├── terraform/                   # Infrastructure as Code
+├── infra/terraform/            # Infrastructure as Code
 │   ├── main.tf
 │   ├── lambda.tf
 │   ├── api_gateway.tf
@@ -177,52 +176,52 @@ uv run pytest -v -m unit
 uv run pytest -v -m integration
 
 # With coverage report
-uv run pytest --cov=src --cov-report=html
+uv run pytest --cov=services --cov-report=html
 open htmlcov/index.html  # View coverage report
 
 # Run specific Lambda's unit tests
-uv run pytest src/services/idp_api/tests/unit/
+uv run pytest services/idp_api/tests/unit/
 
 # Run specific Lambda's integration tests
-uv run pytest src/services/player_account_api/tests/integration/
+uv run pytest services/player_account_api/tests/integration/
 ```
 
 #### Code Formatting
 
 ```bash
 # Format code
-uv run black src tests
-uv run isort src tests
+uv run black services libs tests
+uv run isort services libs tests
 
 # Check formatting (CI mode)
-uv run black --check src tests
-uv run isort --check src tests
+uv run black --check services libs tests
+uv run isort --check services libs tests
 ```
 
 #### Linting and Type Checking
 
 ```bash
 # Lint code
-uv run ruff check src tests
+uv run ruff check services libs tests
 
 # Auto-fix issues
-uv run ruff check --fix src tests
+uv run ruff check --fix services libs tests
 
 # Type checking
-uv run mypy src
+uv run mypy services libs
 
 # Security scanning
-uv run bandit -r src
+uv run bandit -r services libs
 ```
 
 #### Run All Quality Checks
 
 ```bash
 # Single command for all checks
-uv run black --check src tests && \
-uv run isort --check src tests && \
-uv run ruff check src tests && \
-uv run mypy src && \
+uv run black --check services libs tests && \
+uv run isort --check services libs tests && \
+uv run ruff check services libs tests && \
+uv run mypy services libs && \
 uv run pytest
 ```
 
@@ -244,7 +243,7 @@ Create a test event file `test_event.json`:
 Run handler locally:
 
 ```python
-from src.services.idp_api.handler import lambda_handler
+from services.idp_api.handler import lambda_handler
 import json
 
 with open('test_event.json') as f:
@@ -319,7 +318,7 @@ cd ..
 #### 1. Initialize Terraform
 
 ```bash
-cd terraform
+cd infra/terraform
 terraform init
 ```
 
@@ -363,14 +362,14 @@ terraform output api_gateway_url
 
 For comprehensive testing examples, see the individual service README files:
 
-- **IDP API Testing**: [src/services/idp_api/README.md#testing](src/services/idp_api/README.md#testing)
-- **Player Account API Testing**: [src/services/player_account_api/README.md#testing](src/services/player_account_api/README.md#testing)
+- **IDP API Testing**: [services/idp_api/README.md#testing](services/idp_api/README.md#testing)
+- **Player Account API Testing**: [services/player_account_api/README.md#testing](services/player_account_api/README.md#testing)
 
 Quick examples:
 
 ```bash
 # Set API URL
-export API_URL=$(cd terraform && terraform output -raw api_gateway_url)
+export API_URL=$(cd infra/terraform && terraform output -raw api_gateway_url)
 
 # Test IDP API - Authentication
 curl -X POST $API_URL/auth/token \
@@ -388,7 +387,7 @@ curl -X POST $API_URL/players \
 After code changes:
 
 ```bash
-cd terraform
+cd infra/terraform
 terraform apply
 ```
 
@@ -397,7 +396,7 @@ Terraform detects code changes via `source_code_hash` and updates Lambdas automa
 ### Destroy Infrastructure
 
 ```bash
-cd terraform
+cd infra/terraform
 terraform destroy
 ```
 
@@ -405,7 +404,7 @@ terraform destroy
 
 ### Lambda Function Environment Variables
 
-Set in Terraform (`lambda.tf`):
+Set in Terraform (`infra/terraform/lambda.tf`):
 
 ```hcl
 environment {
@@ -431,13 +430,13 @@ AWS_REGION=us-east-1
 
 For detailed API documentation and examples, see the individual service README files:
 
-- **IDP API**: [src/services/idp_api/README.md](src/services/idp_api/README.md)
+- **IDP API**: [services/idp_api/README.md](services/idp_api/README.md)
 
   - Authentication endpoints
   - Token management
   - User information retrieval
 
-- **Player Account API**: [src/services/player_account_api/README.md](src/services/player_account_api/README.md)
+- **Player Account API**: [services/player_account_api/README.md](services/player_account_api/README.md)
   - Player account management
   - Player statistics
   - Profile operations
@@ -446,7 +445,7 @@ For detailed API documentation and examples, see the individual service README f
 
 ```bash
 # Get API Gateway URL from Terraform
-export API_URL=$(cd terraform && terraform output -raw api_gateway_url)
+export API_URL=$(cd infra/terraform && terraform output -raw api_gateway_url)
 
 # Test IDP API - Authentication
 curl -X POST $API_URL/auth/token \
@@ -509,7 +508,7 @@ enable_xray_tracing = true
 
 **Problem**: Lambda can't access AWS services
 
-**Solution**: Update IAM role in `terraform/lambda.tf` with required permissions
+**Solution**: Update IAM role in `infra/terraform/lambda.tf` with required permissions
 
 #### 3. Cold Start Latency
 

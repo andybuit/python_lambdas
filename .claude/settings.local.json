@@ -21,7 +21,11 @@
       "Bash(mv:*)",
       "Bash(uv run black:*)",
       "Bash(uv run pip list:*)",
-      "Bash(uv run isort:*)"
+      "Bash(uv run isort:*)",
+      "Bash(rm:*)",
+      "Bash(find:*)",
+      "Bash(python:*)",
+      "Bash(uv run python:*)"
     ],
     "deny": [],
     "ask": []

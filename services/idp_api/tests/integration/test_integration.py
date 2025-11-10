@@ -5,7 +5,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from src.services.idp_api.handler import lambda_handler
+from services.idp_api.handler import lambda_handler
 
 
 @pytest.fixture

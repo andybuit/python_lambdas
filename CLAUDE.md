@@ -46,33 +46,33 @@ uv run pytest -v -m integration   # Integration tests only
 uv run pytest -v -m e2e           # End-to-end tests (requires deployed infrastructure)
 
 # Run with coverage
-uv run pytest --cov=src --cov-report=html --cov-fail-under=80
+uv run pytest --cov=services --cov-report=html --cov-fail-under=80
 ```
 
 ### Code Quality
 ```bash
 # Format code
-uv run black src tests
-uv run isort src tests
+uv run black services libs tests
+uv run isort services libs tests
 
 # Lint and type checking
-uv run ruff check src tests
-uv run mypy src
+uv run ruff check services libs tests
+uv run mypy services libs
 
 # Security scanning
-uv run bandit -r src
+uv run bandit -r services libs
 
 # Run all quality checks (used in CI)
-uv run black --check src tests && \
-uv run isort --check src tests && \
-uv run ruff check src tests && \
-uv run mypy src && \
-uv run pytest --cov=src --cov-fail-under=80
+uv run black --check services libs tests && \
+uv run isort --check services libs tests && \
+uv run ruff check services libs tests && \
+uv run mypy services libs && \
+uv run pytest --cov=services --cov-fail-under=80
 ```
 
 ### Deployment
 ```bash
-cd terraform
+cd infra/terraform
 terraform init
 terraform plan
 terraform apply
@@ -81,27 +81,26 @@ terraform apply
 ## Project Structure
 
 ```
-src/
-├── services/                # Lambda functions (services)
-│   ├── idp_api/              # Identity Provider API Lambda
-│   │   ├── handler.py        # Lambda entry point with routing
-│   │   ├── service.py        # Business logic
-│   │   ├── models.py         # Pydantic request/response models
-│   │   └── tests/            # Unit and integration tests
-│   └── player_account_api/   # Player Account API Lambda
-│       ├── handler.py
-│       ├── service.py
-│       ├── models.py
-│       └── tests/
-└── libs/                    # Shared libraries across Lambdas
-    ├── models.py             # Common response models (APIResponse, ErrorResponse)
-    ├── logger.py             # AWS Lambda Powertools logger configuration
-    └── exceptions.py         # Custom exception hierarchy
+services/                     # Lambda functions (services)
+├── idp_api/                  # Identity Provider API Lambda
+│   ├── handler.py            # Lambda entry point with routing
+│   ├── service.py            # Business logic
+│   ├── models.py             # Pydantic request/response models
+│   └── tests/                # Unit and integration tests
+└── player_account_api/       # Player Account API Lambda
+    ├── handler.py
+    ├── service.py
+    ├── models.py
+    └── tests/
+libs/                        # Shared libraries across Lambdas
+├── models.py                 # Common response models (APIResponse, ErrorResponse)
+├── logger.py                 # AWS Lambda Powertools logger configuration
+└── exceptions.py             # Custom exception hierarchy
 
 tests/
 └── e2e/                      # End-to-end tests for deployed infrastructure
 
-terraform/                    # Infrastructure as Code
+infra/terraform/              # Infrastructure as Code
 ├── main.tf                   # Provider and backend configuration
 ├── lambda.tf                 # Lambda function definitions
 ├── api_gateway.tf            # API Gateway routing
@@ -119,7 +118,7 @@ Each Lambda follows this pattern:
 4. **tests/**: Comprehensive unit and integration tests
 
 ### Error Handling
-- Custom exceptions inherit from `PSNEmulatorException` ([src/libs/exceptions.py](src/libs/exceptions.py:4))
+- Custom exceptions inherit from `PSNEmulatorException` ([libs/exceptions.py](libs/exceptions.py:4))
 - Automatic error response formatting with proper HTTP status codes
 - Structured logging with AWS Lambda Powertools
 
@@ -129,7 +128,7 @@ Each Lambda follows this pattern:
 - Type hints required on all functions
 
 ### Logging
-- Use `get_logger(__name__)` from [src/libs/logger.py](src/libs/logger.py)
+- Use `get_logger(__name__)` from [libs/logger.py](libs/logger.py)
 - Never use `print()` statements
 - Structured logging with contextual information
 
@@ -173,11 +172,11 @@ Each Lambda follows this pattern:
 ## Common Development Tasks
 
 ### Adding a New Lambda Function
-1. Create directory: `src/services/new_api/`
+1. Create directory: `services/new_api/`
 2. Add files: `handler.py`, `service.py`, `models.py`, `tests/`
 3. Follow existing patterns from other Lambdas
-4. Update Terraform configuration in `terraform/lambda.tf`
-5. Add API Gateway routes in `terraform/api_gateway.tf`
+4. Update Terraform configuration in `infra/terraform/lambda.tf`
+5. Add API Gateway routes in `infra/terraform/api_gateway.tf`
 
 ### Debugging
 - Use VS Code debugging configurations (see `.vscode/launch.json`)
@@ -187,7 +186,7 @@ Each Lambda follows this pattern:
 ### Local Testing with Mock Events
 Create test event JSON files and use handlers directly:
 ```python
-from src.services.idp_api.handler import lambda_handler
+from services.idp_api.handler import lambda_handler
 import json
 
 with open('test_event.json') as f:
@@ -204,7 +203,7 @@ Set in local `.env` file (not committed):
 - `AWS_REGION=us-east-1`
 
 ### Production
-Configured in Terraform `lambda.tf` for each Lambda function.
+Configured in Terraform `infra/terraform/lambda.tf` for each Lambda function.
 
 ## Security Considerations
 
@@ -217,14 +216,14 @@ Configured in Terraform `lambda.tf` for each Lambda function.
 
 - Terraform manages Lambda package creation automatically
 - Changes to Lambda code trigger updates via `source_code_hash`
-- API Gateway routes configured in `terraform/api_gateway.tf`
+- API Gateway routes configured in `infra/terraform/api_gateway.tf`
 - Multi-environment support via Terraform workspaces
 
 ## Troubleshooting
 
 ### Common Issues
 1. **Import errors in Lambda**: Check packaging in Terraform
-2. **Permission denied**: Update IAM roles in `terraform/lambda.tf`
+2. **Permission denied**: Update IAM roles in `infra/terraform/lambda.tf`
 3. **Cold start latency**: Consider Lambda warming or memory increase
 4. **Test failures locally**: Run `rm -rf .venv && uv sync`
 

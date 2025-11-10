@@ -72,30 +72,30 @@ Before committing, run all quality checks:
 
 ```bash
 # Format code
-uv run black src tests
-uv run isort src tests
+uv run black services libs tests
+uv run isort services libs tests
 
 # Lint
-uv run ruff check src tests
+uv run ruff check services libs tests
 
 # Type check
-uv run mypy src
+uv run mypy services libs
 
 # Security scan
-uv run bandit -r src
+uv run bandit -r services libs
 
 # Run tests
-uv run pytest -v --cov=src
+uv run pytest -v --cov=services
 ```
 
 Or use the all-in-one command:
 
 ```bash
-uv run black --check src tests && \
-uv run isort --check src tests && \
-uv run ruff check src tests && \
-uv run mypy src && \
-uv run pytest --cov=src --cov-fail-under=80
+uv run black --check services libs tests && \
+uv run isort --check services libs tests && \
+uv run ruff check services libs tests && \
+uv run mypy services libs && \
+uv run pytest --cov=services --cov-fail-under=80
 ```
 
 ### 3. Commit Your Changes
@@ -195,10 +195,10 @@ class CreatePlayerRequest(BaseModel):
 
 ### Error Handling
 
-Use custom exceptions from `src.libs.exceptions`:
+Use custom exceptions from `libs.exceptions`:
 
 ```python
-from src.libs.exceptions import ValidationException, NotFoundException
+from libs.exceptions import ValidationException, NotFoundException
 
 def get_player(player_id: str) -> PlayerAccount:
     """Get player by ID."""
@@ -213,7 +213,7 @@ def get_player(player_id: str) -> PlayerAccount:
 Use AWS Lambda Powertools logger:
 
 ```python
-from src.libs.logger import get_logger
+from libs.logger import get_logger
 
 logger = get_logger(__name__)
 
@@ -254,8 +254,8 @@ Test individual functions and classes in isolation:
 
 ```python
 import pytest
-from src.services.idp_api.service import IDPService
-from src.libs.exceptions import AuthenticationException
+from services.idp_api.service import IDPService
+from libs.exceptions import AuthenticationException
 
 class TestIDPService:
     """Unit tests for IDP service."""
@@ -288,7 +288,7 @@ class TestIDPAPIIntegration:
     def test_full_authentication_flow(self, lambda_context: MagicMock) -> None:
         """Test complete authentication flow."""
         # Test handler with realistic event
-        from src.services.idp_api.handler import lambda_handler
+        from services.idp_api.handler import lambda_handler
 
         event = {
             "httpMethod": "POST",
@@ -335,7 +335,7 @@ E2E_API_BASE_URL=https://your-api.execute-api.us-east-1.amazonaws.com \
 uv run pytest tests/e2e/ -m e2e -v
 
 # With coverage
-uv run pytest --cov=src --cov-report=html
+uv run pytest --cov=services --cov-report=html
 ```
 
 ### Test Fixtures
@@ -496,9 +496,9 @@ Follow this pattern when adding a new Lambda:
 ### 1. Create Directory Structure
 
 ```bash
-mkdir -p src/services/new_api/{tests,}
-touch src/services/new_api/{__init__.py,handler.py,service.py,models.py}
-touch src/services/new_api/tests/{__init__.py,test_handler.py,test_service.py,test_integration.py}
+mkdir -p services/new_api/{tests,}
+touch services/new_api/{__init__.py,handler.py,service.py,models.py}
+touch services/new_api/tests/{__init__.py,test_handler.py,test_service.py,test_integration.py}
 ```
 
 ### 2. Implement Lambda
@@ -510,7 +510,7 @@ touch src/services/new_api/tests/{__init__.py,test_handler.py,test_service.py,te
 
 ### 3. Update Terraform
 
-Add Lambda function in `terraform/lambda.tf`:
+Add Lambda function in `infra/terraform/lambda.tf`:
 
 ```hcl
 resource "aws_lambda_function" "new_api" {
@@ -523,7 +523,7 @@ resource "aws_lambda_function" "new_api" {
 }
 ```
 
-Add API Gateway routes in `terraform/api_gateway.tf`:
+Add API Gateway routes in `infra/terraform/api_gateway.tf`:
 
 ```hcl
 resource "aws_apigatewayv2_route" "new_api_route" {

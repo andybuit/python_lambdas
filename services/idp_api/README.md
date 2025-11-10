@@ -105,7 +105,7 @@ Refresh access token using refresh token.
 ## Files Structure
 
 ```
-src/services/idp_api/
+services/idp_api/
 ├── handler.py         # Lambda handler with API Gateway routing
 ├── service.py         # Authentication business logic
 ├── models.py          # Pydantic request/response models
@@ -124,16 +124,16 @@ src/services/idp_api/
 
 ```bash
 # Run all IDP API tests
-uv run pytest src/services/idp_api/tests/
+uv run pytest services/idp_api/tests/
 
 # Run only unit tests
-uv run pytest src/services/idp_api/tests/unit/
+uv run pytest services/idp_api/tests/unit/
 
 # Run only integration tests
-uv run pytest src/services/idp_api/tests/integration/
+uv run pytest services/idp_api/tests/integration/
 
 # Run with coverage
-uv run pytest src/services/idp_api/tests/ --cov=src.services.idp_api
+uv run pytest services/idp_api/tests/ --cov=services.idp_api
 ```
 
 ### Local Testing with Mock Events
@@ -154,7 +154,7 @@ Create a test event file `test_event.json`:
 Run handler locally:
 
 ```python
-from src.services.idp_api.handler import lambda_handler
+from services.idp_api.handler import lambda_handler
 import json
 
 with open('test_event.json') as f:
@@ -221,13 +221,13 @@ print(json.dumps(response, indent=2))
 
 ```bash
 # All tests
-uv run pytest src/services/idp_api/tests/ -v
+uv run pytest services/idp_api/tests/ -v
 
 # Unit tests only
-uv run pytest src/services/idp_api/tests/unit/ -v
+uv run pytest services/idp_api/tests/unit/ -v
 
 # Integration tests only
-uv run pytest src/services/idp_api/tests/integration/ -v -m integration
+uv run pytest services/idp_api/tests/integration/ -v -m integration
 ```
 
 ## Error Handling
@@ -265,7 +265,7 @@ The API uses standardized error responses:
 Uses AWS Lambda Powertools for structured logging:
 
 ```python
-from src.libs.logger import get_logger
+from libs.logger import get_logger
 
 logger = get_logger(__name__)
 logger.info("Authentication attempt", extra={"username": username})
@@ -282,7 +282,7 @@ Track authentication metrics:
 
 ## Deployment
 
-Deployed via Terraform configuration in `terraform/`:
+Deployed via Terraform configuration in `infra/terraform/`:
 
 - Lambda function definition in `lambda.tf`
 - API Gateway routing in `api_gateway.tf`

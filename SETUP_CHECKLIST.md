@@ -18,9 +18,9 @@ Use this checklist to verify your setup and get started with development or depl
 
 ### Verify Installation
 - [ ] Run tests: `uv run pytest -v`
-- [ ] Check formatting: `uv run black --check src tests`
-- [ ] Check linting: `uv run ruff check src tests`
-- [ ] Check types: `uv run mypy src`
+- [ ] Check formatting: `uv run black --check services libs tests`
+- [ ] Check linting: `uv run ruff check services libs tests`
+- [ ] Check types: `uv run mypy services libs`
 
 ## ✅ Development Environment
 
@@ -39,18 +39,18 @@ Use this checklist to verify your setup and get started with development or depl
 ## ✅ Code Quality Checks
 
 Run all checks before committing:
-- [ ] Format code: `uv run black src tests`
-- [ ] Sort imports: `uv run isort src tests`
-- [ ] Lint: `uv run ruff check src tests`
-- [ ] Type check: `uv run mypy src`
-- [ ] Security scan: `uv run bandit -r src`
-- [ ] Run tests: `uv run pytest --cov=src --cov-fail-under=80`
+- [ ] Format code: `uv run black services libs tests`
+- [ ] Sort imports: `uv run isort services libs tests`
+- [ ] Lint: `uv run ruff check services libs tests`
+- [ ] Type check: `uv run mypy services libs`
+- [ ] Security scan: `uv run bandit -r services libs`
+- [ ] Run tests: `uv run pytest --cov=services --cov-fail-under=80`
 
 ## ✅ Local Testing
 
 ### Unit Tests
 - [ ] Run all unit tests: `uv run pytest -v -m unit`
-- [ ] Verify coverage: `uv run pytest --cov=src --cov-report=html`
+- [ ] Verify coverage: `uv run pytest --cov=services --cov-report=html`
 - [ ] Open coverage report: `open htmlcov/index.html`
 
 ### Integration Tests
@@ -68,7 +68,7 @@ Run all checks before committing:
 
 ### Terraform Setup
 - [ ] Terraform installed: `terraform --version`
-- [ ] Navigate to terraform directory: `cd terraform`
+- [ ] Navigate to terraform directory: `cd infra/terraform`
 - [ ] Initialize Terraform: `terraform init`
 - [ ] Configure variables in `terraform.tfvars`
 
@@ -107,7 +107,7 @@ Run all checks before committing:
 
 - [ ] Read [README.md](README.md) - Main documentation
 - [ ] Read [CONTRIBUTING.md](CONTRIBUTING.md) - Development guidelines
-- [ ] Read [terraform/README.md](terraform/README.md) - Deployment guide
+- [ ] Read [infra/terraform/README.md](infra/terraform/README.md) - Deployment guide
 - [ ] Read [PROJECT_SUMMARY.md](PROJECT_SUMMARY.md) - Project overview
 - [ ] Review [.github/copilot-instructions.md](.github/copilot-instructions.md) for AI assistance
 
@@ -121,17 +121,17 @@ Ready to add a new feature? Follow this workflow:
    ```
 
 2. **Make changes**
-   - Add/modify code in `src/`
+   - Add/modify code in `services/` or `libs/`
    - Add tests in appropriate `tests/` directory
    - Update documentation if needed
 
 3. **Run quality checks**
    ```bash
-   uv run black src tests && \
-   uv run isort src tests && \
-   uv run ruff check src tests && \
-   uv run mypy src && \
-   uv run pytest --cov=src
+   uv run black services libs tests && \
+   uv run isort services libs tests && \
+   uv run ruff check services libs tests && \
+   uv run mypy services libs && \
+   uv run pytest --cov=services
    ```
 
 4. **Commit changes**
@@ -151,15 +151,15 @@ Ready to add a new feature? Follow this workflow:
 ```bash
 uv sync                          # Install dependencies
 uv run pytest -v                 # Run tests
-uv run pytest --cov=src          # Run with coverage
-uv run black src tests           # Format code
-uv run ruff check src tests      # Lint code
-uv run mypy src                  # Type check
+uv run pytest --cov=services     # Run with coverage
+uv run black services libs tests # Format code
+uv run ruff check services libs tests # Lint code
+uv run mypy services libs        # Type check
 ```
 
 ### Deployment
 ```bash
-cd terraform
+cd infra/terraform
 terraform init                   # Initialize
 terraform plan                   # Preview changes
 terraform apply                  # Deploy
