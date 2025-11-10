@@ -6,14 +6,14 @@ from typing import Any
 from aws_lambda_powertools.utilities.typing import LambdaContext
 from pydantic import ValidationError
 
-from src.lambdas.player_account_api.models import (
+from src.services.player_account_api.models import (
     CreatePlayerRequest,
     UpdatePlayerRequest,
 )
-from src.lambdas.player_account_api.service import PlayerAccountService
-from src.shared.exceptions import PSNEmulatorException, ValidationException
-from src.shared.logger import get_logger
-from src.shared.models import ErrorResponse
+from src.services.player_account_api.service import PlayerAccountService
+from src.libs.common.exceptions import PSNEmulatorException, ValidationException
+from src.libs.common.logger import get_logger
+from src.libs.common.models import ErrorResponse
 
 logger = get_logger(__name__)
 

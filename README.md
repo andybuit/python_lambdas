@@ -5,6 +5,7 @@ A serverless API service for simulating partner environments, enabling early int
 ## Overview
 
 The PSN Partner Emulator provides:
+
 - **IDP API**: Identity Provider emulation for authentication and token management
 - **Player Account API**: Player account management and statistics tracking
 - **Serverless Architecture**: AWS Lambda functions with API Gateway
@@ -29,7 +30,7 @@ The PSN Partner Emulator provides:
 
 ## Tech Stack
 
-- **Language**: Python 3.12
+- **Language**: Python 3.13
 - **Package Manager**: uv (fast Python package manager)
 - **Framework**: AWS Lambda Powertools
 - **Validation**: Pydantic v2
@@ -41,6 +42,7 @@ The PSN Partner Emulator provides:
 ## Prerequisites
 
 ### Required
+
 - **Python 3.12+**: [Download Python](https://www.python.org/downloads/)
 - **uv**: Fast Python package manager
   ```bash
@@ -49,11 +51,13 @@ The PSN Partner Emulator provides:
 - **Git**: Version control
 
 ### For Deployment
+
 - **AWS CLI**: [Install AWS CLI](https://aws.amazon.com/cli/)
 - **Terraform**: [Install Terraform](https://www.terraform.io/downloads)
 - **AWS Account**: With appropriate permissions
 
 ### Recommended
+
 - **VS Code**: With recommended extensions (see `.vscode/extensions.json`)
 - **Docker**: For local testing with containerized dependencies
 
@@ -75,7 +79,7 @@ uv sync
 # Activate virtual environment (if needed)
 source .venv/bin/activate  # Linux/macOS
 # or
-.venv\Scripts\activate  # Windows
+.venv\Scripts\activate.bat  # Windows
 
 # Install pre-commit hooks
 uv run pre-commit install
@@ -100,7 +104,7 @@ uv run mypy src
 ```
 fips-psn-emulator-service/
 ├── src/
-│   ├── lambdas/                 # Lambda functions
+│   ├── services/               # Lambda functions (services)
 │   │   ├── idp_api/            # Identity Provider API
 │   │   │   ├── handler.py      # Lambda handler
 │   │   │   ├── service.py      # Business logic
@@ -111,7 +115,7 @@ fips-psn-emulator-service/
 │   │       ├── service.py
 │   │       ├── models.py
 │   │       └── tests/
-│   └── shared/                  # Shared utilities
+│   └── libs/                   # Shared libraries
 │       ├── models.py           # Common models
 │       ├── logger.py           # Logging utilities
 │       └── exceptions.py       # Custom exceptions
@@ -204,7 +208,7 @@ Create a test event file `test_event.json`:
 Run handler locally:
 
 ```python
-from src.lambdas.idp_api.handler import lambda_handler
+from src.services.idp_api.handler import lambda_handler
 import json
 
 with open('test_event.json') as f:
@@ -263,6 +267,7 @@ cd ..
 ### Prerequisites for Deployment
 
 1. **AWS Credentials**: Configure AWS CLI
+
    ```bash
    aws configure
    # Enter: AWS Access Key ID, Secret Access Key, Region, Output format
@@ -397,9 +402,11 @@ AWS_REGION=us-east-1
 ### IDP API Endpoints
 
 #### POST /auth/token
+
 Authenticate user and receive access token.
 
 **Request:**
+
 ```json
 {
   "username": "testuser",
@@ -408,6 +415,7 @@ Authenticate user and receive access token.
 ```
 
 **Response:**
+
 ```json
 {
   "access_token": "...",
@@ -418,14 +426,17 @@ Authenticate user and receive access token.
 ```
 
 #### GET /auth/userinfo
+
 Get authenticated user information.
 
 **Headers:**
+
 ```
 Authorization: Bearer <access_token>
 ```
 
 **Response:**
+
 ```json
 {
   "user_id": "usr_001",
@@ -436,9 +447,11 @@ Authorization: Bearer <access_token>
 ```
 
 #### POST /auth/refresh
+
 Refresh access token using refresh token.
 
 **Request:**
+
 ```json
 {
   "refresh_token": "..."
@@ -448,9 +461,11 @@ Refresh access token using refresh token.
 ### Player Account API Endpoints
 
 #### POST /players
+
 Create a new player account.
 
 **Request:**
+
 ```json
 {
   "username": "player1",
@@ -460,15 +475,19 @@ Create a new player account.
 ```
 
 #### GET /players
+
 List all player accounts.
 
 #### GET /players/{player_id}
+
 Get specific player account.
 
 #### PUT /players/{player_id}
+
 Update player account.
 
 **Request:**
+
 ```json
 {
   "display_name": "Updated Name",
@@ -477,9 +496,11 @@ Update player account.
 ```
 
 #### DELETE /players/{player_id}
+
 Delete player account.
 
 #### GET /players/{player_id}/stats
+
 Get player statistics.
 
 ## Monitoring and Logging
@@ -513,6 +534,7 @@ stats avg(@duration), max(@duration), min(@duration) by bin(5m)
 ### X-Ray Tracing
 
 Enable X-Ray in `terraform.tfvars`:
+
 ```hcl
 enable_xray_tracing = true
 ```
@@ -538,6 +560,7 @@ enable_xray_tracing = true
 **Problem**: First request is slow
 
 **Solutions**:
+
 - Use Lambda warming (scheduled events)
 - Optimize imports (lazy loading)
 - Increase memory allocation
@@ -548,6 +571,7 @@ enable_xray_tracing = true
 **Problem**: Tests pass in CI but fail locally
 
 **Solution**:
+
 ```bash
 # Clean environment
 rm -rf .venv
@@ -560,6 +584,7 @@ uv run pytest -v
 **Problem**: Terraform state is locked
 
 **Solution**:
+
 ```bash
 terraform force-unlock <lock-id>
 ```
@@ -574,6 +599,7 @@ logging.basicConfig(level=logging.DEBUG)
 ```
 
 Or set environment variable:
+
 ```bash
 export LOG_LEVEL=DEBUG
 ```
@@ -585,21 +611,25 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for development guidelines, coding standa
 ## Recommended Frameworks and Toolkits
 
 ### For Lambda Development
+
 - **AWS Lambda Powertools**: Logging, tracing, metrics (✓ Already integrated)
 - **AWS SAM CLI**: Local testing with `sam local start-api`
 - **LocalStack**: Local AWS emulation for testing
 
 ### For Testing
+
 - **moto**: AWS service mocking (✓ Already included)
 - **pytest-asyncio**: Async test support
 - **Tavern**: YAML-based API testing
 
 ### For API Documentation
+
 - **FastAPI**: Consider migrating to FastAPI for auto-generated docs
 - **OpenAPI**: Generate OpenAPI spec from code
 - **Swagger UI**: Interactive API documentation
 
 ### For Observability
+
 - **AWS X-Ray**: Distributed tracing (configurable)
 - **CloudWatch Insights**: Log analysis
 - **Datadog/New Relic**: Advanced monitoring (optional)
@@ -607,12 +637,14 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for development guidelines, coding standa
 ## Performance Optimization
 
 ### Lambda Cold Start Optimization
+
 - Minimize dependencies
 - Use Lambda layers for common dependencies
 - Lazy load heavy imports
 - Increase memory allocation (improves CPU)
 
 ### Cost Optimization
+
 - Use ARM64 (Graviton2) for 20% cost reduction
 - Adjust memory/timeout to minimum needed
 - Implement caching for repeated queries
@@ -633,6 +665,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for development guidelines, coding standa
 ## Support
 
 For issues, questions, or contributions:
+
 - Create an issue in the repository
 - Review [CONTRIBUTING.md](CONTRIBUTING.md)
 - Check existing issues and discussions
@@ -640,18 +673,21 @@ For issues, questions, or contributions:
 ## Roadmap
 
 ### Phase 1 (Current)
+
 - ✅ IDP API Lambda
 - ✅ Player Account API Lambda
 - ✅ Terraform infrastructure
 - ✅ CI/CD pipeline
 
 ### Phase 2 (Planned)
+
 - [ ] DynamoDB integration for persistence
 - [ ] JWT token validation
 - [ ] API Gateway authorizer
 - [ ] Additional partner APIs
 
 ### Phase 3 (Future)
+
 - [ ] GraphQL support
 - [ ] WebSocket APIs
 - [ ] Real-time event streaming

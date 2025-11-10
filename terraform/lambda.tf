@@ -59,7 +59,7 @@ resource "aws_lambda_function" "idp_api" {
   filename         = data.archive_file.idp_api_lambda.output_path
   function_name    = "${var.project_name}-${var.environment}-idp-api"
   role            = aws_iam_role.lambda_execution.arn
-  handler         = "lambdas.idp_api.handler.lambda_handler"
+  handler         = "services.idp_api.handler.lambda_handler"
   source_code_hash = data.archive_file.idp_api_lambda.output_base64sha256
   runtime         = var.lambda_runtime
   timeout         = var.lambda_timeout
@@ -88,7 +88,7 @@ resource "aws_lambda_function" "player_account_api" {
   filename         = data.archive_file.player_account_api_lambda.output_path
   function_name    = "${var.project_name}-${var.environment}-player-account-api"
   role            = aws_iam_role.lambda_execution.arn
-  handler         = "lambdas.player_account_api.handler.lambda_handler"
+  handler         = "services.player_account_api.handler.lambda_handler"
   source_code_hash = data.archive_file.player_account_api_lambda.output_base64sha256
   runtime         = var.lambda_runtime
   timeout         = var.lambda_timeout

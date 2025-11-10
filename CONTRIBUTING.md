@@ -195,10 +195,10 @@ class CreatePlayerRequest(BaseModel):
 
 ### Error Handling
 
-Use custom exceptions from `src.shared.exceptions`:
+Use custom exceptions from `src.libs.exceptions`:
 
 ```python
-from src.shared.exceptions import ValidationException, NotFoundException
+from src.libs.exceptions import ValidationException, NotFoundException
 
 def get_player(player_id: str) -> PlayerAccount:
     """Get player by ID."""
@@ -213,7 +213,7 @@ def get_player(player_id: str) -> PlayerAccount:
 Use AWS Lambda Powertools logger:
 
 ```python
-from src.shared.logger import get_logger
+from src.libs.logger import get_logger
 
 logger = get_logger(__name__)
 
@@ -254,8 +254,8 @@ Test individual functions and classes in isolation:
 
 ```python
 import pytest
-from src.lambdas.idp_api.service import IDPService
-from src.shared.exceptions import AuthenticationException
+from src.services.idp_api.service import IDPService
+from src.libs.exceptions import AuthenticationException
 
 class TestIDPService:
     """Unit tests for IDP service."""
@@ -288,7 +288,7 @@ class TestIDPAPIIntegration:
     def test_full_authentication_flow(self, lambda_context: MagicMock) -> None:
         """Test complete authentication flow."""
         # Test handler with realistic event
-        from src.lambdas.idp_api.handler import lambda_handler
+        from src.services.idp_api.handler import lambda_handler
 
         event = {
             "httpMethod": "POST",
@@ -496,9 +496,9 @@ Follow this pattern when adding a new Lambda:
 ### 1. Create Directory Structure
 
 ```bash
-mkdir -p src/lambdas/new_api/{tests,}
-touch src/lambdas/new_api/{__init__.py,handler.py,service.py,models.py}
-touch src/lambdas/new_api/tests/{__init__.py,test_handler.py,test_service.py,test_integration.py}
+mkdir -p src/services/new_api/{tests,}
+touch src/services/new_api/{__init__.py,handler.py,service.py,models.py}
+touch src/services/new_api/tests/{__init__.py,test_handler.py,test_service.py,test_integration.py}
 ```
 
 ### 2. Implement Lambda
@@ -517,7 +517,7 @@ resource "aws_lambda_function" "new_api" {
   filename         = data.archive_file.new_api_lambda.output_path
   function_name    = "${var.project_name}-${var.environment}-new-api"
   role            = aws_iam_role.lambda_execution.arn
-  handler         = "lambdas.new_api.handler.lambda_handler"
+  handler         = "services.new_api.handler.lambda_handler"
   runtime         = var.lambda_runtime
   # ...
 }

@@ -6,11 +6,11 @@ from typing import Any
 from aws_lambda_powertools.utilities.typing import LambdaContext
 from pydantic import ValidationError
 
-from src.lambdas.idp_api.models import AuthenticationRequest, TokenResponse
-from src.lambdas.idp_api.service import IDPService
-from src.shared.exceptions import PSNEmulatorException, ValidationException
-from src.shared.logger import get_logger
-from src.shared.models import ErrorResponse
+from src.services.idp_api.models import AuthenticationRequest, TokenResponse
+from src.services.idp_api.service import IDPService
+from src.libs.common.exceptions import PSNEmulatorException, ValidationException
+from src.libs.common.logger import get_logger
+from src.libs.common.models import ErrorResponse
 
 logger = get_logger(__name__)
 

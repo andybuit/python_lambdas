@@ -6,7 +6,7 @@ authors = [
     {name = "PSN Team", email = "team@example.com"}
 ]
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.13"
 license = {text = "MIT"}
 
 dependencies = [
@@ -167,6 +167,7 @@ skips = ["B101"]
 [dependency-groups]
 dev = [
     "email-validator>=2.3.0",
+    "pre-commit>=4.4.0",
     "pytest>=8.0",
     "pytest-cov>=7.0.0",
 ]

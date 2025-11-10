@@ -11,7 +11,7 @@ A complete serverless Python workspace for developing AWS Lambda-based API servi
 ```
 fips-psn-emulator-service/
 ├── src/
-│   ├── lambdas/
+│   ├── services/                # Lambda functions (services)
 │   │   ├── idp_api/              # Identity Provider API Lambda
 │   │   │   ├── handler.py        # Lambda entry point
 │   │   │   ├── service.py        # Business logic
@@ -22,7 +22,7 @@ fips-psn-emulator-service/
 │   │       ├── service.py
 │   │       ├── models.py
 │   │       └── tests/
-│   └── shared/                   # Shared utilities
+│   └── libs/                    # Shared libraries
 │       ├── models.py             # Common models
 │       ├── logger.py             # AWS Lambda Powertools logger
 │       └── exceptions.py         # Custom exception classes
