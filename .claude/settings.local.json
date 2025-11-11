@@ -28,7 +28,12 @@
       "Bash(uv run python:*)",
       "Bash(git checkout:*)",
       "Bash(uv run ruff check:*)",
-      "Bash(python3:*)"
+      "Bash(python3:*)",
+      "Bash(uv sync:*)",
+      "Bash(uv run mypy:*)",
+      "Bash(docker run:*)",
+      "Bash(curl:*)",
+      "Bash(docker stop:*)"
     ],
     "deny": [],
     "ask": []

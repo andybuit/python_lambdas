@@ -176,17 +176,23 @@ services/player_account_api/
 ### Running Tests
 
 ```bash
-# Run all Player Account API tests
+# Run tests using the consolidated test script (recommended)
+uv run python scripts/test.py --service player_account_api --coverage --html
+
+# Run tests directly with pytest
 uv run pytest services/player_account_api/tests/
 
 # Run only unit tests
-uv run pytest services/player_account_api/tests/unit/
+uv run python scripts/test.py --service player_account_api --type unit --verbose
 
 # Run only integration tests
-uv run pytest services/player_account_api/tests/integration/
+uv run python scripts/test.py --service player_account_api --type integration --verbose
 
-# Run with coverage
-uv run pytest services/player_account_api/tests/ --cov=services.player_account_api
+# Run tests in parallel
+uv run python scripts/test.py --service player_account_api --parallel --workers 4
+
+# Run with coverage and HTML report
+uv run python scripts/test.py --service player_account_api --coverage --html --html-dir coverage_report
 ```
 
 ### Local Testing with Mock Events
@@ -278,14 +284,17 @@ print(json.dumps(response, indent=2))
 ### Running Tests
 
 ```bash
-# All tests
+# Using consolidated test script (recommended)
+uv run python scripts/test.py --service player_account_api --verbose
+
+# All tests with pytest (direct)
 uv run pytest services/player_account_api/tests/ -v
 
 # Unit tests only
-uv run pytest services/player_account_api/tests/unit/ -v
+uv run python scripts/test.py --service player_account_api --type unit --verbose
 
 # Integration tests only
-uv run pytest services/player_account_api/tests/integration/ -v -m integration
+uv run python scripts/test.py --service player_account_api --type integration --verbose
 ```
 
 ## Error Handling
@@ -374,13 +383,69 @@ Track player management metrics:
 - Player deletions
 - Player statistics requests
 
+## Docker Deployment
+
+This Lambda function is deployed as a Docker container with per-Lambda independence.
+
+### Building Docker Images
+
+```bash
+# Build this Lambda specifically
+uv run python scripts/build.py --service player_account_api --tag v1.0.0
+
+# Build all Lambdas
+uv run python scripts/build.py --service all --tag v1.0.0
+
+# Build without cache (clean build)
+uv run python scripts/build.py --service player_account_api --no-cache --tag v1.0.0
+
+# Build and push to ECR
+uv run python scripts/build.py --service player_account_api --tag v1.0.0 --push --ecr-repo-map '{"player_account_api": "123456789012.dkr.ecr.us-east-1.amazonaws.com/fips-psn-player-account-api"}'
+```
+
+### Local Docker Testing
+
+```bash
+# Build the image locally
+uv run python scripts/build.py --service player_account_api --tag dev
+
+# Run locally
+docker run -p 9000:8080 fips-psn-player-account-api:dev
+
+# Test with curl
+curl -XPOST "http://localhost:9000/2015-03-31/functions/function/invocations" \
+  -d '{"body": "{\"username\":\"testplayer\",\"email\":\"test@example.com\",\"display_name\":\"Test Player\"}"}'
+```
+
+### Docker Architecture
+
+- **Multi-stage build**: Minimal final image size with only runtime dependencies
+- **Base image**: `public.ecr.aws/lambda/python:3.13`
+- **Package manager**: `uv` for fast dependency resolution
+- **Common library**: Installed from local path during build
+- **Environment variables**: `POWERTOOLS_SERVICE_NAME=player-account-api`
+
 ## Deployment
 
 Deployed via Terraform configuration in `infra/terraform/`:
 
-- Lambda function definition in `lambda.tf`
+- Lambda function definition in `lambda.tf` (container-based)
 - API Gateway routing in `api_gateway.tf`
+- ECR repositories in `ecr.tf`
 - IAM permissions in `lambda.tf`
+
+### Deploy Script
+
+```bash
+# Build and deploy all Lambdas
+uv run python scripts/deploy.py --tag v1.0.0 --environment dev
+
+# Deploy specific Lambda only
+uv run python scripts/deploy.py --tag v1.0.0 --services player_account_api --environment dev
+
+# Deploy without building (use existing local images)
+uv run python scripts/deploy.py --tag v1.0.0 --no-build --environment dev
+```
 
 ## Future Enhancements
 

@@ -4,21 +4,29 @@ import json
 from typing import Any
 
 from aws_lambda_powertools.utilities.typing import LambdaContext
-from pydantic import ValidationError
-
 from libs.common.src.exceptions import PSNEmulatorException, ValidationException
 from libs.common.src.logger import get_logger
 from libs.common.src.models import ErrorResponse
-from .models import (
-    CreatePlayerRequest,
-    UpdatePlayerRequest,
-)
-from .service import PlayerAccountService
+from pydantic import ValidationError
+
+# Try absolute imports first (for Docker), then relative imports (for local testing)
+try:
+    from models import (
+        CreatePlayerRequest,
+        UpdatePlayerRequest,
+    )
+    from service import PlayerAccountService
+except ImportError:
+    from .models import (
+        CreatePlayerRequest,
+        UpdatePlayerRequest,
+    )
+    from .service import PlayerAccountService
 
 logger = get_logger(__name__)
 
 
-def lambda_handler(event: dict[str, Any], context: LambdaContext) -> dict[str, Any]:
+def lambda_handler(event: dict[str, Any], _context: LambdaContext) -> dict[str, Any]:
     """
     AWS Lambda handler for Player Account API requests.
 
@@ -46,9 +54,18 @@ def lambda_handler(event: dict[str, Any], context: LambdaContext) -> dict[str, A
         path_params = event.get("pathParameters") or {}
         body = json.loads(event.get("body", "{}")) if event.get("body") else {}
 
-        # Route to appropriate handler
+        # Route to appropriate handler - check more specific paths first
         if http_method == "POST" and path.endswith("/players"):
             return handle_create_player(body)
+        elif http_method == "GET" and path.endswith("/players"):
+            return handle_list_players()
+        elif http_method == "GET" and "/players/" in path and path.endswith("/stats"):
+            player_id = path_params.get("player_id")
+            if not player_id:
+                return create_error_response(
+                    400, "BAD_REQUEST", "player_id is required"
+                )
+            return handle_get_player_stats(player_id)
         elif http_method == "GET" and "/players/" in path:
             player_id = path_params.get("player_id")
             if not player_id:
@@ -70,15 +87,6 @@ def lambda_handler(event: dict[str, Any], context: LambdaContext) -> dict[str, A
                     400, "BAD_REQUEST", "player_id is required"
                 )
             return handle_delete_player(player_id)
-        elif http_method == "GET" and path.endswith("/players"):
-            return handle_list_players()
-        elif http_method == "GET" and "/players/" in path and path.endswith("/stats"):
-            player_id = path_params.get("player_id")
-            if not player_id:
-                return create_error_response(
-                    400, "BAD_REQUEST", "player_id is required"
-                )
-            return handle_get_player_stats(player_id)
         else:
             return create_error_response(
                 404, "NOT_FOUND", f"Endpoint not found: {http_method} {path}"
@@ -183,7 +191,10 @@ def handle_list_players() -> dict[str, Any]:
     """
     service = PlayerAccountService()
     players = service.list_players()
-    players_data = {"players": [json.loads(p.model_dump_json()) for p in players], "count": len(players)}
+    players_data = {
+        "players": [json.loads(p.model_dump_json()) for p in players],
+        "count": len(players),
+    }
     return create_success_response(200, players_data)
 
 
@@ -202,7 +213,9 @@ def handle_get_player_stats(player_id: str) -> dict[str, Any]:
     return create_success_response(200, stats.model_dump_json())
 
 
-def create_success_response(status_code: int, data: dict[str, Any] | str) -> dict[str, Any]:
+def create_success_response(
+    status_code: int, data: dict[str, Any] | str
+) -> dict[str, Any]:
     """
     Create a successful API Gateway response.
 

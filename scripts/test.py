@@ -75,11 +75,13 @@ def build_pytest_command(
 
     # Add coverage options
     if coverage:
-        pytest_cmd.extend([
-            "--cov=src",
-            "--cov-report=term-missing",
-            "--cov-report=xml",
-        ])
+        pytest_cmd.extend(
+            [
+                "--cov=src",
+                "--cov-report=term-missing",
+                "--cov-report=xml",
+            ]
+        )
 
         if html:
             pytest_cmd.extend([f"--cov-report=html:{html_dir}"])
@@ -102,7 +104,7 @@ def run_service_tests(
     try:
         service_path = get_service_path(service_name, project_root)
     except ValueError as e:
-        print(f"\n✗ Error: {e}")
+        print(f"\n[ERROR] {e}")
         return 1
 
     print(f"\n{'='*60}")
@@ -114,13 +116,13 @@ def run_service_tests(
 
     # Check if service directory exists
     if not service_path.exists():
-        print(f"\n✗ Error: Service directory does not exist: {service_path}")
+        print(f"\n[ERROR] Service directory does not exist: {service_path}")
         return 1
 
     # Check if tests directory exists
     tests_path = service_path / "tests"
     if not tests_path.exists():
-        print(f"\n✗ Error: Tests directory does not exist: {tests_path}")
+        print(f"\n[ERROR] Tests directory does not exist: {tests_path}")
         return 1
 
     # Install dev dependencies first
@@ -128,7 +130,7 @@ def run_service_tests(
     sync_cmd = ["uv", "sync", "--extra", "dev"]
     sync_exit_code = run_command(sync_cmd, cwd=service_path)
     if sync_exit_code != 0:
-        print(f"\n✗ Failed to install dev dependencies for {service_name}")
+        print(f"\n[ERROR] Failed to install dev dependencies for {service_name}")
         return sync_exit_code
 
     # Build pytest command
@@ -146,9 +148,9 @@ def run_service_tests(
     exit_code = run_command(pytest_cmd, cwd=service_path)
 
     if exit_code == 0:
-        print(f"\n✓ All tests passed for {service_name}!")
+        print(f"\n[OK] All tests passed for {service_name}!")
     else:
-        print(f"\n✗ Tests failed for {service_name} with exit code {exit_code}")
+        print(f"\n[ERROR] Tests failed for {service_name} with exit code {exit_code}")
 
     return exit_code
 
@@ -174,7 +176,7 @@ def test_services(
         services_to_test = services
 
     print(f"\n{'='*80}")
-    print(f"Testing PSN Emulator Lambda Services")
+    print("Testing PSN Emulator Lambda Services")
     print(f"{'='*80}")
     print(f"Services: {', '.join(services_to_test)}")
     print(f"Test type: {test_type}")
@@ -205,9 +207,9 @@ def test_services(
     # Print summary
     print(f"\n{'='*80}")
     if overall_exit_code == 0:
-        print(f"✓ All service tests passed!")
+        print("[OK] All service tests passed!")
     else:
-        print(f"✗ Some tests failed. Check the output above for details.")
+        print("[ERROR] Some tests failed. Check the output above for details.")
     print(f"{'='*80}")
 
     return overall_exit_code
@@ -219,47 +221,44 @@ def main() -> int:
         description="Run tests for PSN Emulator Lambda services"
     )
     parser.add_argument(
-        "--service", "-s",
+        "--service",
+        "-s",
         choices=["idp_api", "player_account_api", "all"],
         nargs="+",
         default=["all"],
-        help="Service(s) to test (default: all)"
+        help="Service(s) to test (default: all)",
     )
     parser.add_argument(
-        "--type", "-t",
+        "--type",
+        "-t",
         choices=["unit", "integration", "all"],
         default="all",
-        help="Test type to run (default: all)"
+        help="Test type to run (default: all)",
     )
+    parser.add_argument("--verbose", "-v", action="store_true", help="Verbose output")
     parser.add_argument(
-        "--verbose", "-v",
-        action="store_true",
-        help="Verbose output"
-    )
-    parser.add_argument(
-        "--coverage",
-        action="store_true",
-        help="Generate coverage report"
+        "--coverage", action="store_true", help="Generate coverage report"
     )
     parser.add_argument(
         "--html",
         action="store_true",
-        help="Generate HTML coverage report (requires --coverage)"
+        help="Generate HTML coverage report (requires --coverage)",
     )
     parser.add_argument(
         "--html-dir",
         default="htmlcov",
-        help="Directory for HTML coverage report (default: htmlcov)"
+        help="Directory for HTML coverage report (default: htmlcov)",
     )
     parser.add_argument(
         "--parallel",
         action="store_true",
-        help="Run tests in parallel using pytest-xdist"
+        help="Run tests in parallel using pytest-xdist",
     )
     parser.add_argument(
-        "--workers", "-n",
+        "--workers",
+        "-n",
         default="auto",
-        help="Number of parallel workers (default: auto)"
+        help="Number of parallel workers (default: auto)",
     )
 
     args = parser.parse_args()

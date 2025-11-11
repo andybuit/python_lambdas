@@ -1,8 +1,8 @@
 """Unit tests for IDP API service."""
 
 import pytest
+from libs.common.src.exceptions import AuthenticationException
 
-from libs.common.src.exceptions import AuthenticationException, NotFoundException
 from services.idp_api.src.service import IDPService
 
 

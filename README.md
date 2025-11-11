@@ -155,7 +155,6 @@ fips-psn-emulator-service/
 ├── scripts/                    # Orchestration scripts
 │   ├── build.py                # Consolidated build script for all Lambdas
 │   ├── test.py                 # Consolidated pytest runner for all Lambdas
-│   ├── build_all.py            # Legacy build script (deprecated)
 │   └── deploy.py               # Deploy images to AWS
 ├── tests/
 │   └── e2e/                    # End-to-end tests
@@ -168,8 +167,8 @@ fips-psn-emulator-service/
 │   └── outputs.tf              # Output values
 ├── .vscode/                    # VS Code configuration
 ├── .claude/                    # Claude Code configuration
-├── pyproject.toml              # Root project configuration
-├── pytest.ini                  # Pytest configuration for all Lambdas
+├── pyproject.toml              # Root project configuration (orchestration only)
+├── pytest.ini                  # Legacy pytest configuration (per-Lambda configs preferred)
 ├── README.md                   # This file
 ├── README_DOCKER.md            # Docker deployment guide
 ├── SETUP_CHECKLIST.md          # Setup and verification checklist

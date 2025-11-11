@@ -17,6 +17,15 @@ def lambda_context() -> MagicMock:
     return context
 
 
+@pytest.fixture(autouse=True)
+def reset_storage() -> None:
+    """Reset storage before each integration test."""
+    from services.player_account_api.src.service import _players_storage, _stats_storage
+
+    _players_storage.clear()
+    _stats_storage.clear()
+
+
 @pytest.mark.integration
 class TestPlayerAccountAPIIntegration:
     """Integration tests for Player Account API Lambda end-to-end flows."""

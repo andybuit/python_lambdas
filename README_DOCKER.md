@@ -66,7 +66,6 @@ The `libs/common/` directory contains shared code:
 │       └── tests/            # Unit & integration tests
 ├── scripts/                  # Centralized orchestration scripts
 │   ├── build.py              # Consolidated build script for all Lambdas
-│   ├── build_all.py          # Legacy build script (deprecated)
 │   ├── test.py               # Consolidated pytest runner for all Lambdas
 │   └── deploy.py             # Deploy images to AWS
 ├── infra/terraform/          # Infrastructure as Code
@@ -78,7 +77,7 @@ The `libs/common/` directory contains shared code:
 │   └── outputs.tf            # Output values
 ├── tests/                    # Cross-cutting tests
 │   └── e2e/                  # End-to-end tests
-└── src/                      # Legacy source (deprecated)
+└── src/                      # Legacy source (deprecated - moved to services/)
 ```
 
 ## Prerequisites

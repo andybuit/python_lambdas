@@ -5,22 +5,42 @@ from datetime import datetime
 
 from libs.common.src.exceptions import ConflictException, NotFoundException
 from libs.common.src.logger import get_logger
-from .models import (
-    PlayerAccount,
-    PlayerStats,
-    PlayerStatus,
-    UpdatePlayerRequest,
-)
+
+# Try absolute imports first (for Docker), then relative imports (for local testing)
+try:
+    from models import (
+        PlayerAccount,
+        PlayerStats,
+        PlayerStatus,
+        UpdatePlayerRequest,
+    )
+except ImportError:
+    from .models import (
+        PlayerAccount,
+        PlayerStats,
+        PlayerStatus,
+        UpdatePlayerRequest,
+    )
 
 logger = get_logger(__name__)
+
+# Module-level storage for persistence across service instances (for demo/integration testing)
+# In production, this would be replaced with DynamoDB
+_players_storage: dict[str, PlayerAccount] = {}
+_stats_storage: dict[str, PlayerStats] = {}
 
 
 class PlayerAccountService:
     """Service class for Player Account operations."""
 
-    # In-memory storage for demo purposes - replace with DynamoDB in production
-    _players: dict[str, PlayerAccount] = {}
-    _stats: dict[str, PlayerStats] = {}
+    def __init__(self, reset_storage: bool = False) -> None:
+        # Use module-level storage for persistence across handler calls
+        # In production, replace with DynamoDB
+        if reset_storage:
+            _players_storage.clear()
+            _stats_storage.clear()
+        self._players = _players_storage
+        self._stats = _stats_storage
 
     def create_player(
         self, username: str, email: str, display_name: str | None = None

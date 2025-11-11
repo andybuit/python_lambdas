@@ -21,7 +21,6 @@ import json
 import subprocess
 import sys
 from pathlib import Path
-from typing import Dict, Optional
 
 
 def run_command(cmd: list[str], check: bool = True) -> subprocess.CompletedProcess:
@@ -31,7 +30,7 @@ def run_command(cmd: list[str], check: bool = True) -> subprocess.CompletedProce
     return result
 
 
-def get_service_config(service_name: str) -> Dict[str, str]:
+def get_service_config(service_name: str) -> dict[str, str]:
     """Get configuration for a specific service."""
     service_configs = {
         "idp_api": {
@@ -43,7 +42,7 @@ def get_service_config(service_name: str) -> Dict[str, str]:
             "service_dir": "player_account_api",
             "image_name": "fips-psn-player-account-api",
             "display_name": "Player Account API",
-        }
+        },
     }
 
     if service_name not in service_configs:
@@ -74,9 +73,12 @@ def build_docker_image(
     build_cmd = [
         "docker",
         "build",
-        "-f", str(project_root / "services" / config["service_dir"] / "Dockerfile"),
-        "-t", f"{config['image_name']}:{tag}",
-        "--platform", platform,
+        "-f",
+        str(project_root / "services" / config["service_dir"] / "Dockerfile"),
+        "-t",
+        f"{config['image_name']}:{tag}",
+        "--platform",
+        platform,
     ]
 
     if no_cache:
@@ -87,24 +89,24 @@ def build_docker_image(
 
     try:
         run_command(build_cmd)
-        print(f"\n✓ Successfully built {config['image_name']}:{tag}")
+        print(f"\n[OK] Successfully built {config['image_name']}:{tag}")
         return 0
     except subprocess.CalledProcessError as e:
-        print(f"\n✗ Build failed with exit code {e.returncode}")
+        print(f"\n[ERROR] Build failed with exit code {e.returncode}")
         return e.returncode
 
 
 def push_to_ecr(
     service_name: str,
     tag: str,
-    ecr_repo_map: Dict[str, str],
+    ecr_repo_map: dict[str, str],
     project_root: Path,
 ) -> int:
     """Push the Docker image to ECR."""
     config = get_service_config(service_name)
 
     if service_name not in ecr_repo_map:
-        print(f"\n✗ Error: No ECR repository found for service '{service_name}'")
+        print(f"\n[ERROR] No ECR repository found for service '{service_name}'")
         return 1
 
     ecr_repo = ecr_repo_map[service_name]
@@ -119,9 +121,9 @@ def push_to_ecr(
 
     try:
         run_command(tag_cmd)
-        print(f"✓ Tagged image as {ecr_image}")
+        print(f"[OK] Tagged image as {ecr_image}")
     except subprocess.CalledProcessError as e:
-        print(f"✗ Failed to tag image: {e}")
+        print(f"[ERROR] Failed to tag image: {e}")
         return e.returncode
 
     # Push to ECR
@@ -129,10 +131,10 @@ def push_to_ecr(
 
     try:
         run_command(push_cmd)
-        print(f"\n✓ Successfully pushed {ecr_image}")
+        print(f"\n[OK] Successfully pushed {ecr_image}")
         return 0
     except subprocess.CalledProcessError as e:
-        print(f"\n✗ Push failed: {e}")
+        print(f"\n[ERROR] Push failed: {e}")
         return e.returncode
 
 
@@ -142,7 +144,7 @@ def build_services(
     platform: str,
     no_cache: bool,
     push: bool,
-    ecr_repo_map: Optional[Dict[str, str]],
+    ecr_repo_map: dict[str, str] | None,
 ) -> int:
     """Build one or more services."""
     # Get project root (this script is in scripts/, so go up one level)
@@ -155,7 +157,7 @@ def build_services(
         services_to_build = services
 
     print(f"\n{'='*80}")
-    print(f"Building PSN Emulator Lambda Services")
+    print("Building PSN Emulator Lambda Services")
     print(f"{'='*80}")
     print(f"Services: {', '.join(services_to_build)}")
     print(f"Tag: {tag}")
@@ -165,7 +167,7 @@ def build_services(
 
     # Validate ECR configuration if pushing
     if push and not ecr_repo_map:
-        print("\n✗ Error: --ecr-repo-map is required when using --push")
+        print("\n[ERROR] --ecr-repo-map is required when using --push")
         return 1
 
     overall_exit_code = 0
@@ -199,10 +201,10 @@ def build_services(
                     overall_exit_code = exit_code
 
         except ValueError as e:
-            print(f"\n✗ Error: {e}")
+            print(f"\n[ERROR] {e}")
             overall_exit_code = 1
         except Exception as e:
-            print(f"\n✗ Unexpected error building {service}: {e}")
+            print(f"\n[ERROR] Unexpected error building {service}: {e}")
             overall_exit_code = 1
 
     return overall_exit_code
@@ -214,35 +216,30 @@ def main() -> int:
         description="Build Docker images for PSN Emulator Lambda services"
     )
     parser.add_argument(
-        "--service", "-s",
+        "--service",
+        "-s",
         choices=["idp_api", "player_account_api", "all"],
         nargs="+",
         default=["all"],
-        help="Service(s) to build (default: all)"
+        help="Service(s) to build (default: all)",
     )
     parser.add_argument(
-        "--tag", "-t",
-        default="latest",
-        help="Docker image tag (default: latest)"
+        "--tag", "-t", default="latest", help="Docker image tag (default: latest)"
     )
     parser.add_argument(
         "--platform",
         default="linux/amd64",
-        help="Target platform (default: linux/amd64)"
+        help="Target platform (default: linux/amd64)",
     )
     parser.add_argument(
-        "--no-cache",
-        action="store_true",
-        help="Build without using cache"
+        "--no-cache", action="store_true", help="Build without using cache"
     )
     parser.add_argument(
-        "--push",
-        action="store_true",
-        help="Push images to ECR after building"
+        "--push", action="store_true", help="Push images to ECR after building"
     )
     parser.add_argument(
         "--ecr-repo-map",
-        help="JSON mapping of service names to ECR repository URIs (required if --push is used)"
+        help="JSON mapping of service names to ECR repository URIs (required if --push is used)",
     )
 
     args = parser.parse_args()
@@ -253,7 +250,7 @@ def main() -> int:
         try:
             ecr_repo_map = json.loads(args.ecr_repo_map)
         except json.JSONDecodeError as e:
-            print(f"\n✗ Error parsing ECR repo map: {e}")
+            print(f"\n[ERROR] Error parsing ECR repo map: {e}")
             return 1
 
     return build_services(

@@ -5,6 +5,7 @@ Use this checklist to verify your setup and get started with development or depl
 ## ✅ Initial Setup
 
 ### Prerequisites Installation
+
 - [ ] Python 3.13+ installed (`python --version`)
 - [ ] uv package manager installed (`pip install uv && uv --version`)
 - [ ] Docker installed and running (`docker --version`)
@@ -12,11 +13,13 @@ Use this checklist to verify your setup and get started with development or depl
 - [ ] VS Code installed (recommended)
 
 ### Project Setup
+
 - [ ] Clone/navigate to project directory
 - [ ] No root-level dependencies needed - each Lambda is independent
 - [ ] Install pre-commit hooks: `uv run pre-commit install` (if configured)
 
 ### Verify Installation
+
 - [ ] Test individual Lambda: `uv run python scripts/test.py --service idp_api --coverage --html`
 - [ ] Test second Lambda: `uv run python scripts/test.py --service player_account_api --coverage --html`
 - [ ] Test all Lambdas: `uv run python scripts/test.py --service all --coverage --html`
@@ -25,12 +28,14 @@ Use this checklist to verify your setup and get started with development or depl
 ## ✅ Development Environment
 
 ### VS Code Setup
+
 - [ ] Open project in VS Code
 - [ ] Install recommended extensions (prompted automatically)
 - [ ] Verify Python interpreter is set to `.venv/bin/python`
 - [ ] Test debugging: Open `services/idp_api/src/handler.py` and press F5 **🆕 Updated path**
 
 ### Git Configuration
+
 - [ ] Initialize git: `git init` (if not already done)
 - [ ] Create `.gitignore` (already present)
 - [ ] Make initial commit: `git add . && git commit -m "feat: initial setup"`
@@ -39,24 +44,32 @@ Use this checklist to verify your setup and get started with development or depl
 ## ✅ Code Quality Checks
 
 Run all checks before committing:
+
 - [ ] For IDP API: `uv run python scripts/test.py --service idp_api --coverage --html`
 - [ ] For Player Account API: `uv run python scripts/test.py --service player_account_api --coverage --html`
 - [ ] For all services: `uv run python scripts/test.py --service all --coverage --html`
-- [ ] Format code (per service): `cd services/{name} && uv run black src/`
-- [ ] Lint code (per service): `cd services/{name} && uv run ruff check src/`
-- [ ] Type check (per service): `cd services/{name} && uv run mypy src/`
+- [ ] Format code:
+      All source code: `uv run black scripts/ libs/ services/`
+      Per service: `cd services/{name} && uv run black src/`
+- [ ] Lint code:
+      All source code: `uv run ruff check scripts/ libs/ services/ --fix`
+      Per Service: `cd services/{name} && uv run ruff check src/`
+- [ ] Type check:
+      All source code: `uv run mypy scripts/ libs/ services/ `
+      Per service: `cd services/{name} && uv run mypy src/`
 - [ ] Build Docker images: `uv run python scripts/build.py --service all --tag test`
 
 ## ✅ Understanding the Project Structure
 
 ### Docker-Based Architecture
+
 - [ ] Review the Docker-based project structure:
   - Lambda code: `services/{name}/src/` (handler.py, service.py, models.py)
   - Shared libraries: `libs/common/src/` (exceptions.py, logger.py, models.py)
   - Tests: `services/{name}/tests/` with unit/ and integration/ subdirectories
   - Docker files: `services/{name}/Dockerfile` (multi-stage builds)
   - Centralized scripts: `scripts/build.py`, `scripts/test.py`, `scripts/deploy.py`
-  - Pytest configuration: `pytest.ini`
+  - Per-Lambda pytest configuration (consolidated scripts handle orchestration)
   - Infrastructure: `infra/terraform/` with ECR and Lambda configurations
 - [ ] Understand key benefits:
   - **Isolated dependencies** - Each Lambda has only required packages
@@ -72,12 +85,13 @@ Run all checks before committing:
   - Images pushed to Amazon ECR for Lambda deployment
 
 ### Key Files to Understand
+
 - [ ] Review `services/idp_api/src/handler.py` - Lambda entry point
 - [ ] Review `services/idp_api/src/service.py` - Business logic
 - [ ] Review `services/idp_api/Dockerfile` - Multi-stage container build
 - [ ] Review `scripts/build.py` - Consolidated build script
 - [ ] Review `scripts/test.py` - Consolidated test script
-- [ ] Review `pytest.ini` - Pytest configuration
+- [ ] Review per-Lambda pytest configurations (in services/\*/pyproject.toml)
 - [ ] Review `libs/common/src/exceptions.py` - Shared exceptions
 - [ ] Review `infra/terraform/lambda.tf` - Container-based Lambda configuration
 - [ ] Review `infra/terraform/ecr.tf` - ECR repositories
@@ -86,6 +100,7 @@ Run all checks before committing:
 ## ✅ Local Testing
 
 ### Unit Tests
+
 - [ ] Run IDP API unit tests: `uv run python scripts/test.py --service idp_api --type unit --verbose`
 - [ ] Run Player Account API unit tests: `uv run python scripts/test.py --service player_account_api --type unit --verbose`
 - [ ] Run all unit tests: `uv run python scripts/test.py --service all --type unit --verbose`
@@ -93,12 +108,14 @@ Run all checks before committing:
 - [ ] Open coverage reports: `open htmlcov/index.html` (generated per service)
 
 ### Integration Tests
+
 - [ ] Run IDP API integration tests: `uv run python scripts/test.py --service idp_api --type integration --verbose`
 - [ ] Run Player Account API integration tests: `uv run python scripts/test.py --service player_account_api --type integration --verbose`
 - [ ] Run all integration tests: `uv run python scripts/test.py --service all --type integration --verbose`
 - [ ] Run tests in parallel: `uv run python scripts/test.py --service all --parallel --workers 4`
 
 ### Local Docker Testing
+
 - [ ] Build IDP API: `uv run python scripts/build.py --service idp_api --tag local`
 - [ ] Test container locally: `docker run -p 9000:8080 fips-psn-idp-api:local`
 - [ ] Test with mock event:
@@ -108,24 +125,28 @@ Run all checks before committing:
   ```
 
 ### Local Code Testing
+
 - [ ] Test IDP API handler directly: `python -c "from services.idp_api.src.handler import lambda_handler; print('Import OK')"`
 - [ ] Test Player Account API handler directly: `python -c "from services.player_account_api.src.handler import lambda_handler; print('Import OK')"`
 
 ## ✅ AWS Deployment (Optional)
 
 ### AWS Prerequisites
+
 - [ ] AWS account created
 - [ ] AWS CLI installed: `aws --version`
 - [ ] AWS credentials configured: `aws configure`
 - [ ] Verify credentials: `aws sts get-caller-identity`
 
 ### Terraform Setup
+
 - [ ] Terraform installed: `terraform --version`
 - [ ] Navigate to terraform directory: `cd infra/terraform`
 - [ ] Initialize Terraform: `terraform init`
 - [ ] Configure variables in `terraform.tfvars`
 
 ### Deploy Docker-Based Infrastructure
+
 - [ ] Review plan: `terraform plan`
 - [ ] Apply infrastructure: `terraform apply` (creates ECR repos and Lambda placeholders)
 - [ ] Note API Gateway URL: `terraform output api_gateway_url`
@@ -133,6 +154,7 @@ Run all checks before committing:
 - [ ] Build and deploy Lambda images: `uv run python scripts/deploy.py --tag v1.0.0 --environment dev`
 
 ### Post-Deployment Verification
+
 - [ ] Test authentication endpoint
 - [ ] Test player creation endpoint
 - [ ] View Lambda logs in CloudWatch
@@ -143,18 +165,21 @@ Run all checks before committing:
 ## ✅ Optional Enhancements
 
 ### CI/CD Setup
+
 - [ ] Push to GitHub
 - [ ] Verify GitHub Actions workflow runs
 - [ ] Set up branch protection rules
 - [ ] Configure required status checks
 
 ### Monitoring
+
 - [ ] Enable X-Ray tracing (set `enable_xray_tracing = true`)
 - [ ] Create CloudWatch dashboard
 - [ ] Set up CloudWatch alarms
 - [ ] Configure log insights queries
 
 ### Local Development Tools
+
 - [ ] Docker for containerized testing (already required)
 - [ ] Install AWS SAM CLI for local testing (optional)
 - [ ] Install LocalStack for local AWS emulation (optional)
@@ -174,17 +199,20 @@ Run all checks before committing:
 Ready to add a new feature? Follow this workflow:
 
 1. **Create a branch**
+
    ```bash
    git checkout -b feature/your-feature-name
    ```
 
 2. **Make changes**
+
    - Add/modify code in `services/{name}/src/` or `libs/common/src/`
    - Add tests in appropriate `tests/` directory
    - Update Dockerfile if dependencies changed
    - Update documentation if needed
 
 3. **Run quality checks**
+
    ```bash
    # For the specific service you modified
    uv run python scripts/test.py --service {modified_service} --coverage --html
@@ -196,12 +224,14 @@ Ready to add a new feature? Follow this workflow:
    ```
 
 4. **Commit changes**
+
    ```bash
    git add .
    git commit -m "feat: add your feature"
    ```
 
 5. **Test and deploy**
+
    ```bash
    # Build all images
    uv run python scripts/build.py --service all --tag v1.0.1
@@ -218,6 +248,7 @@ Ready to add a new feature? Follow this workflow:
 ## 🎯 Quick Reference Commands
 
 ### Development
+
 ```bash
 # Test individual services
 uv run python scripts/test.py --service idp_api --coverage --html
@@ -239,6 +270,7 @@ cd services/{name} && uv run mypy src/
 ```
 
 ### Docker Testing
+
 ```bash
 # Test imports work
 python -c "from services.idp_api.src.handler import lambda_handler; print('Import OK')"
@@ -250,6 +282,7 @@ docker run -p 9000:8080 fips-psn-idp-api:local
 ```
 
 ### Deployment
+
 ```bash
 # Deploy infrastructure
 cd infra/terraform
@@ -265,6 +298,7 @@ terraform output api_gateway_url     # Get API URL
 ```
 
 ### Testing Deployed API
+
 ```bash
 export API_URL=$(cd infra/terraform && terraform output -raw api_gateway_url)
 curl -X POST $API_URL/auth/token \
@@ -291,6 +325,7 @@ If you encounter issues, check:
 ### Common Docker Issues
 
 **Docker Build Fails**:
+
 ```bash
 # Clean Docker cache
 docker system prune -a
@@ -300,17 +335,20 @@ uv run python scripts/build.py --service all --no-cache --tag v1.0.0
 ```
 
 **ECR Authentication Issues**:
+
 ```bash
 # Get ECR login
 aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin <account-id>.dkr.ecr.us-east-1.amazonaws.com
 ```
 
 **Import Errors in Deployed Lambda**:
+
 - Check Dockerfile copies all necessary files
 - Verify common library path in container
 - Rebuild with `--no-cache`
 
 For more help, see:
+
 - README.md troubleshooting section (updated for Docker)
 - README_DOCKER.md for Docker-specific guidance
 - CONTRIBUTING.md for development questions
@@ -320,6 +358,7 @@ For more help, see:
 ## ✅ All Set!
 
 Once all checkboxes are complete, you're ready to:
+
 - Develop new Lambda functions using Docker-based architecture
 - Build and test Lambda container images
 - Deploy to AWS using ECR and Terraform
@@ -345,4 +384,4 @@ This checklist has been updated to reflect the following changes:
 - ✅ **Docker as a prerequisite** for local development
 - ✅ **Removed dependency on root-level pyproject.toml**
 - ✅ **Individual service independence** for development and deployment
-- ✅ **Centralized pytest configuration** in `pytest.ini`
+- ✅ **Per-Lambda pytest configuration** in services/\*/pyproject.toml

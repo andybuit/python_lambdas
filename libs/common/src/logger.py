@@ -1,6 +1,5 @@
 """Centralized logging configuration using AWS Lambda Powertools."""
 
-import logging
 from typing import Any
 
 from aws_lambda_powertools import Logger

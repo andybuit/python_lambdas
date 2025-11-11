@@ -20,7 +20,6 @@ import subprocess
 import sys
 from pathlib import Path
 
-
 SERVICES = {
     "idp_api": {
         "name": "IDP API",
@@ -54,7 +53,7 @@ def build_all_services(
     project_root = Path(__file__).parent.parent
 
     print(f"\n{'='*70}")
-    print(f"Building Lambda Docker Images")
+    print("Building Lambda Docker Images")
     print(f"{'='*70}")
     print(f"Tag: {tag}")
     print(f"Platform: {platform}")
@@ -78,8 +77,10 @@ def build_all_services(
         build_cmd = [
             sys.executable,
             str(project_root / service["script"]),
-            "--tag", tag,
-            "--platform", platform,
+            "--tag",
+            tag,
+            "--platform",
+            platform,
         ]
 
         if no_cache:
@@ -100,7 +101,7 @@ def build_all_services(
 
     # Print summary
     print(f"\n{'='*70}")
-    print(f"Build Summary")
+    print("Build Summary")
     print(f"{'='*70}")
 
     success_count = sum(1 for code in results.values() if code == 0)
@@ -108,7 +109,9 @@ def build_all_services(
 
     for service_id, exit_code in results.items():
         status = "✓" if exit_code == 0 else "✗"
-        print(f"{status} {SERVICES[service_id]['name']}: {'SUCCESS' if exit_code == 0 else 'FAILED'}")
+        print(
+            f"{status} {SERVICES[service_id]['name']}: {'SUCCESS' if exit_code == 0 else 'FAILED'}"
+        )
 
     print(f"\nTotal: {success_count}/{total_count} succeeded")
     print(f"{'='*70}\n")
@@ -129,46 +132,42 @@ def get_ecr_repos_from_terraform() -> dict[str, str] | None:
         )
 
         import json
+
         outputs = json.loads(result.stdout)
 
         return {
             "idp_api": outputs.get("ecr_repository_idp_api", {}).get("value"),
-            "player_account_api": outputs.get("ecr_repository_player_account_api", {}).get("value"),
+            "player_account_api": outputs.get(
+                "ecr_repository_player_account_api", {}
+            ).get("value"),
         }
     except (subprocess.CalledProcessError, json.JSONDecodeError, FileNotFoundError):
         print("\n⚠ Warning: Could not get ECR repository URLs from Terraform")
-        print("   Make sure to run 'terraform apply' first, or provide --ecr-repo manually")
+        print(
+            "   Make sure to run 'terraform apply' first, or provide --ecr-repo manually"
+        )
         return None
 
 
 def main() -> int:
     """Main entry point."""
-    parser = argparse.ArgumentParser(
-        description="Build all Lambda Docker images"
-    )
+    parser = argparse.ArgumentParser(description="Build all Lambda Docker images")
     parser.add_argument(
-        "--tag", "-t",
-        default="latest",
-        help="Docker image tag (default: latest)"
+        "--tag", "-t", default="latest", help="Docker image tag (default: latest)"
     )
     parser.add_argument(
         "--platform",
         default="linux/amd64",
-        help="Target platform (default: linux/amd64)"
+        help="Target platform (default: linux/amd64)",
     )
     parser.add_argument(
-        "--no-cache",
-        action="store_true",
-        help="Build without using cache"
+        "--no-cache", action="store_true", help="Build without using cache"
     )
     parser.add_argument(
-        "--push",
-        action="store_true",
-        help="Push images to ECR after building"
+        "--push", action="store_true", help="Push images to ECR after building"
     )
     parser.add_argument(
-        "--services",
-        help="Comma-separated list of services to build (default: all)"
+        "--services", help="Comma-separated list of services to build (default: all)"
     )
 
     args = parser.parse_args()

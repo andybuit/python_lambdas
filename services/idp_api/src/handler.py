@@ -4,18 +4,23 @@ import json
 from typing import Any
 
 from aws_lambda_powertools.utilities.typing import LambdaContext
-from pydantic import ValidationError
-
 from libs.common.src.exceptions import PSNEmulatorException, ValidationException
 from libs.common.src.logger import get_logger
 from libs.common.src.models import ErrorResponse
-from .models import AuthenticationRequest, TokenResponse
-from .service import IDPService
+from pydantic import ValidationError
+
+# Try absolute imports first (for Docker), then relative imports (for local testing)
+try:
+    from models import AuthenticationRequest
+    from service import IDPService
+except ImportError:
+    from .models import AuthenticationRequest
+    from .service import IDPService
 
 logger = get_logger(__name__)
 
 
-def lambda_handler(event: dict[str, Any], context: LambdaContext) -> dict[str, Any]:
+def lambda_handler(event: dict[str, Any], _context: LambdaContext) -> dict[str, Any]:
     """
     AWS Lambda handler for IDP API requests.
 
@@ -141,7 +146,9 @@ def handle_token_refresh(body: dict[str, Any]) -> dict[str, Any]:
     return create_success_response(200, token_response.model_dump_json())
 
 
-def create_success_response(status_code: int, data: dict[str, Any] | str) -> dict[str, Any]:
+def create_success_response(
+    status_code: int, data: dict[str, Any] | str
+) -> dict[str, Any]:
     """
     Create a successful API Gateway response.
 

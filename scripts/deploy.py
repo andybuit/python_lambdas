@@ -24,13 +24,14 @@ import json
 import subprocess
 import sys
 from pathlib import Path
-from typing import Any
-
+from typing import Any, cast
 
 SERVICES = ["idp_api", "player_account_api"]
 
 
-def run_command(cmd: list[str], cwd: Path | None = None, check: bool = True) -> subprocess.CompletedProcess[str]:
+def run_command(
+    cmd: list[str], cwd: Path | None = None, check: bool = True
+) -> subprocess.CompletedProcess[str]:
     """Run a command and return the result."""
     print(f"Running: {' '.join(cmd)}")
     result = subprocess.run(cmd, cwd=cwd, check=check, capture_output=True, text=True)
@@ -45,17 +46,23 @@ def ecr_login(region: str) -> bool:
 
     try:
         # Get ECR login password
-        login_result = run_command([
-            "aws", "ecr", "get-login-password",
-            "--region", region
-        ])
+        login_result = run_command(
+            ["aws", "ecr", "get-login-password", "--region", region]
+        )
 
         # Login to ECR using the password
         subprocess.run(
-            ["docker", "login", "--username", "AWS", "--password-stdin", f"public.ecr.aws"],
+            [
+                "docker",
+                "login",
+                "--username",
+                "AWS",
+                "--password-stdin",
+                "public.ecr.aws",
+            ],
             input=login_result.stdout,
             text=True,
-            check=False
+            check=False,
         )
 
         print("✓ Successfully authenticated to ECR")
@@ -70,11 +77,8 @@ def get_terraform_outputs() -> dict[str, Any]:
     terraform_dir = Path(__file__).parent.parent / "infra" / "terraform"
 
     try:
-        result = run_command(
-            ["terraform", "output", "-json"],
-            cwd=terraform_dir
-        )
-        return json.loads(result.stdout)
+        result = run_command(["terraform", "output", "-json"], cwd=terraform_dir)
+        return cast("dict[str, Any]", json.loads(result.stdout))
     except (subprocess.CalledProcessError, json.JSONDecodeError) as e:
         print(f"✗ Failed to get Terraform outputs: {e}")
         return {}
@@ -85,12 +89,19 @@ def update_lambda_function(function_name: str, image_uri: str, region: str) -> b
     print(f"\nUpdating Lambda function: {function_name}")
 
     try:
-        run_command([
-            "aws", "lambda", "update-function-code",
-            "--function-name", function_name,
-            "--image-uri", image_uri,
-            "--region", region
-        ])
+        run_command(
+            [
+                "aws",
+                "lambda",
+                "update-function-code",
+                "--function-name",
+                function_name,
+                "--image-uri",
+                image_uri,
+                "--region",
+                region,
+            ]
+        )
         print(f"✓ Successfully updated {function_name}")
         return True
     except subprocess.CalledProcessError as e:
@@ -109,7 +120,7 @@ def deploy(
     project_root = Path(__file__).parent.parent
 
     print(f"\n{'='*60}")
-    print(f"Deploying Lambda Functions")
+    print("Deploying Lambda Functions")
     print(f"{'='*60}")
     print(f"Environment: {environment}")
     print(f"Tag: {tag}")
@@ -126,8 +137,10 @@ def deploy(
         build_cmd = [
             sys.executable,
             str(project_root / "scripts" / "build_all.py"),
-            "--tag", tag,
-            "--services", ",".join(services),
+            "--tag",
+            tag,
+            "--services",
+            ",".join(services),
         ]
 
         result = subprocess.run(build_cmd)
@@ -218,33 +231,27 @@ def deploy(
 
 def main() -> int:
     """Main entry point."""
-    parser = argparse.ArgumentParser(
-        description="Deploy Lambda functions to AWS"
+    parser = argparse.ArgumentParser(description="Deploy Lambda functions to AWS")
+    parser.add_argument(
+        "--tag", "-t", default="latest", help="Docker image tag (default: latest)"
     )
     parser.add_argument(
-        "--tag", "-t",
-        default="latest",
-        help="Docker image tag (default: latest)"
-    )
-    parser.add_argument(
-        "--environment", "-e",
+        "--environment",
+        "-e",
         default="dev",
         choices=["dev", "test", "prod"],
-        help="Environment to deploy to (default: dev)"
+        help="Environment to deploy to (default: dev)",
     )
     parser.add_argument(
-        "--services",
-        help="Comma-separated list of services (default: all)"
+        "--services", help="Comma-separated list of services (default: all)"
     )
     parser.add_argument(
         "--no-build",
         action="store_true",
-        help="Skip building images (use existing local images)"
+        help="Skip building images (use existing local images)",
     )
     parser.add_argument(
-        "--region",
-        default="us-east-1",
-        help="AWS region (default: us-east-1)"
+        "--region", default="us-east-1", help="AWS region (default: us-east-1)"
     )
 
     args = parser.parse_args()

@@ -2,11 +2,17 @@
 
 import secrets
 import time
-from datetime import datetime, timedelta
+from datetime import datetime
+from typing import Any
 
 from libs.common.src.exceptions import AuthenticationException, NotFoundException
 from libs.common.src.logger import get_logger
-from .models import TokenResponse, UserInfo
+
+# Try absolute imports first (for Docker), then relative imports (for local testing)
+try:
+    from models import TokenResponse, UserInfo
+except ImportError:
+    from .models import TokenResponse, UserInfo
 
 logger = get_logger(__name__)
 
@@ -15,7 +21,7 @@ class IDPService:
     """Service class for Identity Provider operations."""
 
     # In-memory storage for demo purposes - replace with DynamoDB in production
-    _users = {
+    _users: dict[str, dict[str, Any]] = {
         "testuser": {
             "user_id": "usr_001",
             "username": "testuser",
