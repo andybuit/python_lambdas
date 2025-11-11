@@ -168,11 +168,14 @@ fips-psn-emulator-service/
 │   └── outputs.tf              # Output values
 ├── .vscode/                    # VS Code configuration
 ├── .claude/                    # Claude Code configuration
-├── pyproject.toml              # Root project configuration (DEPRECATED)
+├── pyproject.toml              # Root project configuration
 ├── pytest.ini                  # Pytest configuration for all Lambdas
 ├── README.md                   # This file
 ├── README_DOCKER.md            # Docker deployment guide
+├── SETUP_CHECKLIST.md          # Setup and verification checklist
 ├── MIGRATION_SUMMARY.md        # Docker migration details
+├── CONTRIBUTING.md             # Development guidelines
+├── PROJECT_SUMMARY.md          # Project overview
 └── CLAUDE.md                   # Claude Code guidance
 ```
 
@@ -460,18 +463,34 @@ AWS_REGION=us-east-1
 
 ## API Documentation
 
-For detailed API documentation and examples, see the individual service README files:
+### Available Endpoints
+
+**IDP API (`/auth/*`)**
+- `POST /auth/token` - User authentication
+- `GET /auth/userinfo` - Get user information (requires Bearer token)
+- `POST /auth/refresh` - Refresh access token
+
+**Player Account API (`/players/*`)**
+- `POST /players` - Create player
+- `GET /players` - List all players
+- `GET /players/{player_id}` - Get specific player
+- `PUT /players/{player_id}` - Update player
+- `DELETE /players/{player_id}` - Delete player
+- `GET /players/{player_id}/stats` - Get player statistics
+
+### Detailed Documentation
+
+For comprehensive API documentation and examples, see the individual service README files:
 
 - **IDP API**: [services/idp_api/README.md](services/idp_api/README.md)
-
-  - Authentication endpoints
-  - Token management
+  - Authentication endpoints with request/response examples
+  - Token management and validation
   - User information retrieval
 
 - **Player Account API**: [services/player_account_api/README.md](services/player_account_api/README.md)
-  - Player account management
-  - Player statistics
-  - Profile operations
+  - Player account management operations
+  - Player statistics tracking
+  - Profile management endpoints
 
 ### Quick API Examples
 
@@ -543,7 +562,7 @@ docker ps
 docker system prune -a
 
 # Rebuild without cache
-python scripts/build_all.py --no-cache --tag v1.0.0
+uv run python scripts/build.py --service all --no-cache --tag v1.0.0
 
 # Update uv if needed
 pip install --upgrade uv
@@ -607,10 +626,11 @@ terraform output ecr_repository_idp_api
 ```bash
 # Ensure dependencies are installed for specific Lambda
 cd services/idp_api
-uv sync --group dev
+uv sync
 
-# Run tests with verbose output
-uv run python ../../scripts/test.py --service idp_api --type unit --verbose
+# Run tests with verbose output (from project root)
+cd ../..
+uv run python scripts/test.py --service idp_api --type unit --verbose
 
 # Check imports work with new structure
 python -c "from services.idp_api.src.handler import lambda_handler; print('Import OK')"
@@ -643,6 +663,8 @@ export LOG_LEVEL=DEBUG
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for development guidelines, coding standards, and contribution workflow.
+
+For new developers, follow the [SETUP_CHECKLIST.md](SETUP_CHECKLIST.md) to verify your environment setup and understand the project structure.
 
 ## Recommended Frameworks and Toolkits
 

@@ -17,10 +17,10 @@ Use this checklist to verify your setup and get started with development or depl
 - [ ] Install pre-commit hooks: `uv run pre-commit install` (if configured)
 
 ### Verify Installation
-- [ ] Test individual Lambda: `uv run uv run python scripts/test.py --service idp_api --coverage --html`
-- [ ] Test second Lambda: `uv run uv run python scripts/test.py --service player_account_api --coverage --html`
-- [ ] Test all Lambdas: `uv run uv run python scripts/test.py --service all --coverage --html`
-- [ ] Verify Docker builds: `uv run uv run python scripts/build.py --service all --tag test`
+- [ ] Test individual Lambda: `uv run python scripts/test.py --service idp_api --coverage --html`
+- [ ] Test second Lambda: `uv run python scripts/test.py --service player_account_api --coverage --html`
+- [ ] Test all Lambdas: `uv run python scripts/test.py --service all --coverage --html`
+- [ ] Verify Docker builds: `uv run python scripts/build.py --service all --tag test`
 
 ## ✅ Development Environment
 
@@ -39,25 +39,30 @@ Use this checklist to verify your setup and get started with development or depl
 ## ✅ Code Quality Checks
 
 Run all checks before committing:
-- [ ] For IDP API: `uv run uv run python scripts/test.py --service idp_api --coverage --html`
-- [ ] For Player Account API: `uv run uv run python scripts/test.py --service player_account_api --coverage --html`
-- [ ] For all services: `uv run uv run python scripts/test.py --service all --coverage --html`
+- [ ] For IDP API: `uv run python scripts/test.py --service idp_api --coverage --html`
+- [ ] For Player Account API: `uv run python scripts/test.py --service player_account_api --coverage --html`
+- [ ] For all services: `uv run python scripts/test.py --service all --coverage --html`
 - [ ] Format code (per service): `cd services/{name} && uv run black src/`
 - [ ] Lint code (per service): `cd services/{name} && uv run ruff check src/`
 - [ ] Type check (per service): `cd services/{name} && uv run mypy src/`
-- [ ] Build Docker images: `uv run uv run python scripts/build.py --service all --tag test`
+- [ ] Build Docker images: `uv run python scripts/build.py --service all --tag test`
 
 ## ✅ Understanding the Project Structure
 
 ### Docker-Based Architecture
 - [ ] Review the Docker-based project structure:
-  - Lambda code: `services/{name}/src/`
-  - Shared libraries: `libs/common/src/`
-  - Tests: Remain outside `src/` directories in each service
+  - Lambda code: `services/{name}/src/` (handler.py, service.py, models.py)
+  - Shared libraries: `libs/common/src/` (exceptions.py, logger.py, models.py)
+  - Tests: `services/{name}/tests/` with unit/ and integration/ subdirectories
   - Docker files: `services/{name}/Dockerfile` (multi-stage builds)
-  - Consolidated build script: `scripts/build.py`
-  - Consolidated test script: `scripts/test.py`
+  - Centralized scripts: `scripts/build.py`, `scripts/test.py`, `scripts/deploy.py`
   - Pytest configuration: `pytest.ini`
+  - Infrastructure: `infra/terraform/` with ECR and Lambda configurations
+- [ ] Understand key benefits:
+  - **Isolated dependencies** - Each Lambda has only required packages
+  - **Smaller images** - Multi-stage builds remove build tools
+  - **Independent deployment** - Each Lambda can be updated separately
+  - **Consistent environment** - Docker eliminates "it works on my machine" issues
 - [ ] Understand import patterns:
   - Within Lambda: `from .models import ...`
   - Cross-module: `from libs.common.src.exceptions import ...`
@@ -76,14 +81,15 @@ Run all checks before committing:
 - [ ] Review `libs/common/src/exceptions.py` - Shared exceptions
 - [ ] Review `infra/terraform/lambda.tf` - Container-based Lambda configuration
 - [ ] Review `infra/terraform/ecr.tf` - ECR repositories
+- [ ] Review API endpoints documentation in README_DOCKER.md
 
 ## ✅ Local Testing
 
 ### Unit Tests
-- [ ] Run IDP API unit tests: `uv run uv run python scripts/test.py --service idp_api --type unit --verbose`
-- [ ] Run Player Account API unit tests: `uv run uv run python scripts/test.py --service player_account_api --type unit --verbose`
-- [ ] Run all unit tests: `uv run uv run python scripts/test.py --service all --type unit --verbose`
-- [ ] Verify coverage: `uv run uv run python scripts/test.py --service all --coverage --html`
+- [ ] Run IDP API unit tests: `uv run python scripts/test.py --service idp_api --type unit --verbose`
+- [ ] Run Player Account API unit tests: `uv run python scripts/test.py --service player_account_api --type unit --verbose`
+- [ ] Run all unit tests: `uv run python scripts/test.py --service all --type unit --verbose`
+- [ ] Verify coverage: `uv run python scripts/test.py --service all --coverage --html`
 - [ ] Open coverage reports: `open htmlcov/index.html` (generated per service)
 
 ### Integration Tests
@@ -274,8 +280,9 @@ If you encounter issues, check:
 2. **Python version**: Must be 3.13+
 3. **uv package manager**: Ensure installed (`pip install uv`)
 4. **Import errors**: Check import paths use correct structure:
-   - Libraries: `from libs.common.src.exceptions import ...`
-   - Services: `from services.idp_api.src.handler import ...`
+   - Libraries in Lambda: `from libs.common.src.exceptions import ...`
+   - Within Lambda: `from .models import RequestModel`
+   - Service imports: `from .service import BusinessLogic`
 5. **AWS credentials**: Run `aws sts get-caller-identity`
 6. **ECR authentication**: Check Docker login to ECR registry
 7. **Terraform state**: Check for state lock issues

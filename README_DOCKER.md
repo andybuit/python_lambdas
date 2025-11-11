@@ -4,18 +4,40 @@ This project uses **Docker container images** for AWS Lambda deployment, providi
 
 ## Architecture Overview
 
+This project uses **Docker container images** for AWS Lambda deployment, providing:
+- **Isolated dependencies** per Lambda function
+- **Smaller deployment packages** with only required dependencies
+- **Consistent builds** across development and production environments
+- **Independent versioning** of each Lambda function
+
 ### Per-Lambda Configuration
 Each Lambda function has its own:
 - `pyproject.toml` - Function-specific dependencies only
 - `Dockerfile` - Multi-stage build with Python 3.13
-- `tests/` - Unit and integration tests
-- Uses consolidated build and test scripts from root `scripts/` directory
+- `src/` - Handler, service, and model files
+- `tests/` - Unit and integration tests (unit/ and integration/ subdirectories)
+- Uses centralized build and test scripts from root `scripts/` directory
 
 ### Shared Common Library
 The `libs/common/` directory contains shared code:
-- Exception classes
-- Logger configuration
-- Common Pydantic models
+- Exception classes (`PSNEmulatorException`, `ValidationException`, etc.)
+- Logger configuration with AWS Lambda Powertools
+- Common Pydantic models (`APIResponse`, `ErrorResponse`)
+
+### API Endpoints
+
+**IDP API (`/auth/*`)**
+- `POST /auth/token` - User authentication
+- `GET /auth/userinfo` - Get user information (requires Bearer token)
+- `POST /auth/refresh` - Refresh access token
+
+**Player Account API (`/players/*`)**
+- `POST /players` - Create player
+- `GET /players` - List all players
+- `GET /players/{player_id}` - Get specific player
+- `PUT /players/{player_id}` - Update player
+- `DELETE /players/{player_id}` - Delete player
+- `GET /players/{player_id}/stats` - Get player statistics
 
 ## Project Structure
 
@@ -23,25 +45,40 @@ The `libs/common/` directory contains shared code:
 ├── libs/common/              # Shared library
 │   ├── pyproject.toml        # Common dependencies
 │   └── src/                  # Source code
+│       ├── exceptions.py     # Custom exception hierarchy
+│       ├── logger.py         # AWS Lambda Powertools logger
+│       └── models.py         # Common response models
 ├── services/
 │   ├── idp_api/              # IDP API Lambda
 │   │   ├── Dockerfile        # Container build
 │   │   ├── pyproject.toml    # Function dependencies
 │   │   ├── src/              # Source code
+│   │   │   ├── handler.py    # Lambda entry point with routing
+│   │   │   ├── service.py    # Business logic
+│   │   │   └── models.py     # Pydantic request/response models
 │   │   └── tests/            # Unit & integration tests
+│   │       ├── unit/         # Unit tests
+│   │       └── integration/  # Integration tests
 │   └── player_account_api/   # Player Account API Lambda
-│       ├── Dockerfile
-│       ├── pyproject.toml
-│       ├── src/
-│       └── tests/
-├── scripts/
-│   ├── build.py              # Consolidated build script
-│   ├── test.py               # Consolidated test script
+│       ├── Dockerfile        # Container build
+│       ├── pyproject.toml    # Function dependencies
+│       ├── src/              # Source code
+│       └── tests/            # Unit & integration tests
+├── scripts/                  # Centralized orchestration scripts
+│   ├── build.py              # Consolidated build script for all Lambdas
 │   ├── build_all.py          # Legacy build script (deprecated)
-│   └── deploy.py             # Deploy to AWS
-└── infra/terraform/          # Infrastructure as Code
-    ├── ecr.tf                # ECR repositories
-    └── lambda.tf             # Lambda functions (container-based)
+│   ├── test.py               # Consolidated pytest runner for all Lambdas
+│   └── deploy.py             # Deploy images to AWS
+├── infra/terraform/          # Infrastructure as Code
+│   ├── main.tf               # Provider and backend configuration
+│   ├── ecr.tf                # ECR repositories
+│   ├── lambda.tf             # Lambda functions (container-based)
+│   ├── api_gateway.tf        # API Gateway routing
+│   ├── variables.tf          # Input variables
+│   └── outputs.tf            # Output values
+├── tests/                    # Cross-cutting tests
+│   └── e2e/                  # End-to-end tests
+└── src/                      # Legacy source (deprecated)
 ```
 
 ## Prerequisites
@@ -183,13 +220,14 @@ Edit files in `services/{lambda_name}/src/`
 
 ### 2. Run Tests Locally
 ```bash
-cd services/{lambda_name}
-python scripts/test.py --coverage --html
+# From project root
+uv run python scripts/test.py --service {lambda_name} --coverage --html
 ```
 
 ### 3. Build Docker Image
 ```bash
-python scripts/build.py --tag dev
+# From project root
+uv run python scripts/build.py --service {lambda_name} --tag dev
 ```
 
 ### 4. Test Docker Image Locally (Optional)
@@ -203,7 +241,8 @@ curl -XPOST "http://localhost:9000/2015-03-31/functions/function/invocations" \
 
 ### 5. Deploy to AWS
 ```bash
-python scripts/deploy.py --tag dev --services {lambda_name}
+# From project root
+python scripts/deploy.py --tag dev --services {lambda_name} --environment dev
 ```
 
 ## Dependency Management
@@ -222,14 +261,17 @@ dependencies = [
 
 2. **Rebuild the Docker image:**
 ```bash
-cd services/idp_api
-python scripts/build.py --tag v1.1.0 --no-cache
+# From project root
+uv run python scripts/build.py --service idp_api --tag v1.1.0 --no-cache
 ```
 
 3. **Test and deploy:**
 ```bash
-python scripts/test.py --coverage
-python ../../scripts/deploy.py --tag v1.1.0 --services idp_api
+# Test the updated Lambda
+uv run python scripts/test.py --service idp_api --coverage
+
+# Deploy to AWS
+python scripts/deploy.py --tag v1.1.0 --services idp_api --environment dev
 ```
 
 ### Adding Dependencies to Common Library
@@ -245,7 +287,8 @@ dependencies = [
 
 2. **Rebuild ALL Lambda images** (since they use the common library):
 ```bash
-python scripts/build_all.py --tag v1.1.0 --no-cache
+# From project root - rebuild all services that depend on common library
+uv run python scripts/build.py --service all --tag v1.1.0 --no-cache
 ```
 
 ## Troubleshooting
@@ -261,7 +304,7 @@ docker ps
 docker system prune -a
 
 # Rebuild without cache
-python scripts/build.py --no-cache
+uv run python scripts/build.py --service all --no-cache
 ```
 
 **uv sync fails:**
@@ -273,7 +316,7 @@ pip install --upgrade uv
 uv cache clean
 
 # Rebuild
-python scripts/build.py --no-cache
+uv run python scripts/build.py --service all --no-cache
 ```
 
 ### Deployment Issues
@@ -305,18 +348,19 @@ aws ecr describe-images --repository-name psn-emulator-dev-idp-api
 
 **Tests fail locally:**
 ```bash
-# Ensure dependencies are installed
+# Ensure dependencies are installed (from project root)
+uv run python scripts/test.py --service {lambda_name} --type unit --verbose
+
+# Or run tests directly in the service directory
 cd services/{lambda_name}
 uv sync
-
-# Run with verbose output
-python scripts/test.py --type unit --verbose
+uv run pytest tests/unit/ -v
 ```
 
 **Coverage too low:**
 ```bash
 # Generate HTML report to see gaps
-python scripts/test.py --coverage --html
+uv run python scripts/test.py --service {lambda_name} --coverage --html
 
 # Open htmlcov/index.html in browser
 ```
@@ -348,8 +392,7 @@ jobs:
 
       - name: Run tests
         run: |
-          cd services/idp_api && python scripts/test.py --coverage
-          cd ../player_account_api && python scripts/test.py --coverage
+          uv run python scripts/test.py --service all --coverage
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v2
