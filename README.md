@@ -57,7 +57,7 @@ The PSN Partner Emulator provides a collection of independent serverless microse
 
 ### Required
 
-- **Python 3.12+**: [Download Python](https://www.python.org/downloads/)
+- **Python 3.13+**: [Download Python](https://www.python.org/downloads/)
 - **uv**: Fast Python package manager
   ```bash
   curl -LsSf https://astral.sh/uv/install.sh | sh
@@ -120,9 +120,11 @@ fips-psn-emulator-service/
 ├── services/                   # Lambda functions (services)
 │   ├── idp_api/                # Identity Provider API
 │   │   ├── README.md           # Service-specific documentation
-│   │   ├── handler.py          # Lambda handler
-│   │   ├── service.py          # Business logic
-│   │   ├── models.py           # Pydantic models
+│   │   ├── src/                # 🆕 Source code directory
+│   │   │   ├── __init__.py
+│   │   │   ├── handler.py      # Lambda handler
+│   │   │   ├── service.py      # Business logic
+│   │   │   └── models.py       # Pydantic models
 │   │   └── tests/              # Unit & integration tests
 │   │       ├── unit/
 │   │       │   ├── __init__.py
@@ -131,23 +133,29 @@ fips-psn-emulator-service/
 │   │       └── integration/
 │   │           ├── __init__.py
 │   │           └── test_integration.py # Integration tests
-│   ├── player_account_api/     # Player Account API
-│   │   ├── README.md           # Service-specific documentation
-│   │   ├── handler.py
-│   │   ├── service.py
-│   │   ├── models.py
-│   │   └── tests/
-│   │       ├── unit/
-│   │       │   ├── __init__.py
-│   │       │   ├── test_handler.py     # Unit tests for handler
-│   │       │   └── test_service.py     # Unit tests for service
-│   │       └── integration/
-│   │           ├── __init__.py
-│   │           └── test_integration.py # Integration tests
+│   └── player_account_api/     # Player Account API
+│       ├── README.md           # Service-specific documentation
+│       ├── src/                # 🆕 Source code directory
+│       │   ├── __init__.py
+│       │   ├── handler.py
+│       │   ├── service.py
+│       │   └── models.py
+│       └── tests/
+│           ├── unit/
+│           │   ├── __init__.py
+│           │   ├── test_handler.py     # Unit tests for handler
+│           │   └── test_service.py     # Unit tests for service
+│           └── integration/
+│               ├── __init__.py
+│               └── test_integration.py # Integration tests
 ├── libs/                       # Shared libraries
-│   ├── models.py               # Common models
-│   ├── logger.py               # Logging utilities
-│   └── exceptions.py           # Custom exceptions
+│   └── common/                  # Common utilities
+│       ├── src/                # 🆕 Source code directory
+│       │   ├── __init__.py
+│       │   ├── exceptions.py   # Custom exceptions
+│       │   ├── logger.py       # Logging utilities
+│       │   └── models.py       # Common models
+│       └── __init__.py
 ├── tests/
 │   └── e2e/                    # End-to-end tests
 ├── infra/terraform/            # Infrastructure as Code
@@ -159,6 +167,26 @@ fips-psn-emulator-service/
 ├── .github/                    # GitHub Actions & Copilot instructions
 ├── pyproject.toml              # Project configuration
 └── README.md                   # This file
+```
+
+### 🆕 Code Organization (Recent Updates)
+
+**New `src/` Directory Structure:**
+- All Python source code is now organized in `src/` directories
+- **Lambda Functions**: `services/{name}/src/`
+- **Shared Libraries**: `libs/common/src/`
+- **Tests**: Remain outside `src/` for clear separation
+- **Benefits**: Cleaner deployments, better import organization
+
+**Import Examples:**
+```python
+# Within Lambda files (relative imports)
+from .models import AuthenticationRequest
+from .service import IDPService
+
+# Cross-module imports
+from libs.common.src.exceptions import ValidationException
+from libs.common.src.logger import get_logger
 ```
 
 ### Running Locally
@@ -176,7 +204,7 @@ uv run pytest -v -m unit
 uv run pytest -v -m integration
 
 # With coverage report
-uv run pytest --cov=services --cov-report=html
+uv run pytest --cov=services --cov=libs --cov-report=html
 open htmlcov/index.html  # View coverage report
 
 # Run specific Lambda's unit tests
@@ -222,7 +250,7 @@ uv run black --check services libs tests && \
 uv run isort --check services libs tests && \
 uv run ruff check services libs tests && \
 uv run mypy services libs && \
-uv run pytest
+uv run pytest --cov=services --cov=libs --cov-fail-under=80
 ```
 
 ### Local Testing with Mock Events
@@ -243,7 +271,8 @@ Create a test event file `test_event.json`:
 Run handler locally:
 
 ```python
-from services.idp_api.handler import lambda_handler
+# 🆕 Updated import path for new structure
+from services.idp_api.src.handler import lambda_handler
 import json
 
 with open('test_event.json') as f:
@@ -259,15 +288,15 @@ print(json.dumps(response, indent=2))
 2. Set breakpoints in your code
 3. Press `F5` or use Run & Debug panel
 4. Select debug configuration:
-   - "Debug: IDP API Lambda"
-   - "Debug: Player Account API Lambda"
+   - "Debug: IDP API Lambda" (`services.idp_api.src.handler`)
+   - "Debug: Player Account API Lambda" (`services.player_account_api.src.handler`)
    - "Python: pytest" (for tests)
 
 ## Building for Deployment
 
 ### Build Lambda Packages
 
-Lambda packages are automatically built by Terraform, but you can build manually:
+Lambda packages are automatically built by Terraform from `src/` directories, but you can build manually:
 
 ```bash
 # Create build directory
@@ -276,10 +305,10 @@ mkdir -p build
 # Install dependencies to build directory
 uv pip install --target build/python -r pyproject.toml
 
-# Package Lambda
-cd src
-zip -r ../build/lambda.zip .
-cd ..
+# Package Lambda (from src directory)
+cd services/idp_api/src
+zip -r ../../build/idp-api.zip .
+cd ../../..
 ```
 
 ### Package with Dependencies
@@ -288,8 +317,8 @@ For production deployments with dependencies:
 
 ```bash
 # Install production dependencies
-uv pip install --python-platform linux --python-version 3.12 \
-  -r pyproject.toml --target build/python/lib/python3.12/site-packages
+uv pip install --python-platform linux --python-version 3.13 \
+  -r pyproject.toml --target build/python/lib/python3.13/site-packages
 
 # Create layer
 cd build
@@ -502,7 +531,9 @@ enable_xray_tracing = true
 
 **Problem**: `ModuleNotFoundError` when Lambda executes
 
-**Solution**: Ensure dependencies are included in Lambda package or use Lambda layers
+**Solution**:
+- Check Terraform `source_dir` paths point to correct `src/` directories
+- Ensure dependencies are included in Lambda package or use Lambda layers
 
 #### 2. Permission Denied
 
@@ -534,7 +565,15 @@ uv sync
 uv run pytest -v
 ```
 
-#### 5. Terraform State Lock
+#### 5. Module Not Found Errors
+
+**Problem**: `ModuleNotFoundError` with new `src/` structure
+
+**Solution**: Ensure import paths use new structure:
+- Libraries: `from libs.common.src.exceptions import ...`
+- Tests: `from services.idp_api.src.handler import ...`
+
+#### 6. Terraform State Lock
 
 **Problem**: Terraform state is locked
 
@@ -627,7 +666,7 @@ For issues, questions, or contributions:
 
 ## Roadmap
 
-### Phase 1 (Current)
+### Phase 1 (Current) ✅
 
 - ✅ IDP API Lambda with authentication and token management
 - ✅ Player Account API Lambda with player management
@@ -635,6 +674,8 @@ For issues, questions, or contributions:
 - ✅ Test organization (unit/integration)
 - ✅ Terraform infrastructure
 - ✅ CI/CD pipeline
+- ✅ **NEW**: src/ directory structure for better organization
+- ✅ **NEW**: Separation of source code and tests
 
 ### Phase 2 (Planned)
 

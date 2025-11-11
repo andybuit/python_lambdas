@@ -5,8 +5,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from services.player_account_api.handler import lambda_handler
-from services.player_account_api.models import PlayerAccount, PlayerStatus
+from services.player_account_api.src.handler import lambda_handler
+from services.player_account_api.src.models import PlayerAccount, PlayerStatus
 
 
 @pytest.fixture

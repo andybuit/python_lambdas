@@ -5,12 +5,12 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from libs.common.exceptions import ValidationException
-from services.idp_api.handler import (
+from libs.common.src.exceptions import ValidationException
+from services.idp_api.src.handler import (
     handle_authentication,
     lambda_handler,
 )
-from services.idp_api.models import TokenResponse
+from services.idp_api.src.models import TokenResponse
 
 
 @pytest.fixture

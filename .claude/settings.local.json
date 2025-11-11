@@ -25,7 +25,9 @@
       "Bash(rm:*)",
       "Bash(find:*)",
       "Bash(python:*)",
-      "Bash(uv run python:*)"
+      "Bash(uv run python:*)",
+      "Bash(git checkout:*)",
+      "Bash(uv run ruff check:*)"
     ],
     "deny": [],
     "ask": []
