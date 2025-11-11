@@ -21,12 +21,6 @@ variable "project_name" {
   default     = "psn-emulator"
 }
 
-variable "lambda_runtime" {
-  description = "Lambda runtime version"
-  type        = string
-  default     = "python3.12"
-}
-
 variable "lambda_timeout" {
   description = "Lambda function timeout in seconds"
   type        = number
@@ -55,4 +49,16 @@ variable "enable_xray_tracing" {
   description = "Enable X-Ray tracing for Lambda functions"
   type        = bool
   default     = false
+}
+
+variable "idp_api_image_tag" {
+  description = "Docker image tag for IDP API Lambda"
+  type        = string
+  default     = "latest"
+}
+
+variable "player_account_api_image_tag" {
+  description = "Docker image tag for Player Account API Lambda"
+  type        = string
+  default     = "latest"
 }

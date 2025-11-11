@@ -29,46 +29,19 @@ resource "aws_iam_role_policy_attachment" "lambda_xray" {
   policy_arn = "arn:aws:iam::aws:policy/AWSXRayDaemonWriteAccess"
 }
 
-# Package Lambda functions
-data "archive_file" "idp_api_lambda" {
-  type        = "zip"
-  source_dir  = "${path.module}/../../services/idp_api/src"
-  output_path = "${path.module}/../build/idp_api_lambda.zip"
-  excludes = [
-    "__pycache__",
-    "*.pyc",
-    ".pytest_cache",
-    "tests",
-  ]
-}
-
-data "archive_file" "player_account_api_lambda" {
-  type        = "zip"
-  source_dir  = "${path.module}/../../services/player_account_api/src"
-  output_path = "${path.module}/../build/player_account_api_lambda.zip"
-  excludes = [
-    "__pycache__",
-    "*.pyc",
-    ".pytest_cache",
-    "tests",
-  ]
-}
-
-# IDP API Lambda Function
+# IDP API Lambda Function (Container Image)
 resource "aws_lambda_function" "idp_api" {
-  filename         = data.archive_file.idp_api_lambda.output_path
-  function_name    = "${var.project_name}-${var.environment}-idp-api"
-  role            = aws_iam_role.lambda_execution.arn
-  handler         = "handler.lambda_handler"
-  source_code_hash = data.archive_file.idp_api_lambda.output_base64sha256
-  runtime         = var.lambda_runtime
-  timeout         = var.lambda_timeout
-  memory_size     = var.lambda_memory_size
+  function_name = "${var.project_name}-${var.environment}-idp-api"
+  role          = aws_iam_role.lambda_execution.arn
+  package_type  = "Image"
+  image_uri     = "${aws_ecr_repository.idp_api.repository_url}:${var.idp_api_image_tag}"
+  timeout       = var.lambda_timeout
+  memory_size   = var.lambda_memory_size
 
   environment {
     variables = {
-      ENVIRONMENT    = var.environment
-      LOG_LEVEL      = var.environment == "prod" ? "INFO" : "DEBUG"
+      ENVIRONMENT             = var.environment
+      LOG_LEVEL               = var.environment == "prod" ? "INFO" : "DEBUG"
       POWERTOOLS_SERVICE_NAME = "idp-api"
     }
   }
@@ -81,23 +54,33 @@ resource "aws_lambda_function" "idp_api" {
     aws_iam_role_policy_attachment.lambda_basic_execution,
     aws_cloudwatch_log_group.idp_api
   ]
+
+  lifecycle {
+    ignore_changes = [
+      image_uri, # Allow image updates without Terraform plan changes
+    ]
+  }
+
+  tags = {
+    Name        = "${var.project_name}-${var.environment}-idp-api"
+    Environment = var.environment
+    Service     = "idp-api"
+  }
 }
 
-# Player Account API Lambda Function
+# Player Account API Lambda Function (Container Image)
 resource "aws_lambda_function" "player_account_api" {
-  filename         = data.archive_file.player_account_api_lambda.output_path
-  function_name    = "${var.project_name}-${var.environment}-player-account-api"
-  role            = aws_iam_role.lambda_execution.arn
-  handler         = "handler.lambda_handler"
-  source_code_hash = data.archive_file.player_account_api_lambda.output_base64sha256
-  runtime         = var.lambda_runtime
-  timeout         = var.lambda_timeout
-  memory_size     = var.lambda_memory_size
+  function_name = "${var.project_name}-${var.environment}-player-account-api"
+  role          = aws_iam_role.lambda_execution.arn
+  package_type  = "Image"
+  image_uri     = "${aws_ecr_repository.player_account_api.repository_url}:${var.player_account_api_image_tag}"
+  timeout       = var.lambda_timeout
+  memory_size   = var.lambda_memory_size
 
   environment {
     variables = {
-      ENVIRONMENT    = var.environment
-      LOG_LEVEL      = var.environment == "prod" ? "INFO" : "DEBUG"
+      ENVIRONMENT             = var.environment
+      LOG_LEVEL               = var.environment == "prod" ? "INFO" : "DEBUG"
       POWERTOOLS_SERVICE_NAME = "player-account-api"
     }
   }
@@ -110,6 +93,18 @@ resource "aws_lambda_function" "player_account_api" {
     aws_iam_role_policy_attachment.lambda_basic_execution,
     aws_cloudwatch_log_group.player_account_api
   ]
+
+  lifecycle {
+    ignore_changes = [
+      image_uri, # Allow image updates without Terraform plan changes
+    ]
+  }
+
+  tags = {
+    Name        = "${var.project_name}-${var.environment}-player-account-api"
+    Environment = var.environment
+    Service     = "player-account-api"
+  }
 }
 
 # CloudWatch Log Groups

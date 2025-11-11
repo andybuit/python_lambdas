@@ -4,11 +4,11 @@ A serverless API service for simulating partner environments, enabling early int
 
 ## Overview
 
-The PSN Partner Emulator provides a collection of independent serverless microservices:
+The PSN Partner Emulator provides a collection of independent serverless microservices deployed as **Docker container images**:
 
 - **IDP API**: Identity Provider emulation for authentication and token management
 - **Player Account API**: Player account management and statistics tracking
-- **Serverless Architecture**: AWS Lambda functions with API Gateway
+- **Docker-Based Architecture**: Lambda functions deployed as container images with isolated dependencies
 - **Independent Services**: Each Lambda can be developed, tested, and deployed independently
 
 ## Architecture
@@ -24,8 +24,15 @@ The PSN Partner Emulator provides a collection of independent serverless microse
 ┌───▼────────┐    ┌──────▼──────┐
 │ IDP API    │    │ Player      │
 │ Lambda     │    │ Account API │
-│            │    │ Lambda      │
+│(Container) │    │(Container)  │
 └────────────┘    └─────────────┘
+         │                     │
+         └───────┬─────────────┘
+                 │
+        ┌────────▼────────┐
+        │  Amazon ECR     │
+        │  Container Reg  │
+        └─────────────────┘
 ```
 
 ## Services
@@ -46,12 +53,14 @@ The PSN Partner Emulator provides a collection of independent serverless microse
 
 - **Language**: Python 3.13
 - **Package Manager**: uv (fast Python package manager)
-- **Framework**: AWS Lambda Powertools
-- **Validation**: Pydantic v2
-- **Testing**: pytest with coverage
+- **Deployment**: Docker container images with AWS Lambda
+- **Framework**: AWS Lambda Powertools v3.4.0+
+- **Validation**: Pydantic v2.10.0+
+- **Testing**: pytest v8.3.0+ with coverage
 - **Linting**: Ruff, Black, mypy, Bandit
-- **Infrastructure**: Terraform
-- **CI/CD**: GitHub Actions
+- **Infrastructure**: Terraform v1.5.0+
+- **Container Registry**: Amazon ECR
+- **CI/CD**: GitHub Actions (if configured)
 
 ## Prerequisites
 
@@ -60,20 +69,21 @@ The PSN Partner Emulator provides a collection of independent serverless microse
 - **Python 3.13+**: [Download Python](https://www.python.org/downloads/)
 - **uv**: Fast Python package manager
   ```bash
-  curl -LsSf https://astral.sh/uv/install.sh | sh
+  pip install uv
   ```
+- **Docker**: [Install Docker](https://www.docker.com/get-started) (required for building Lambda images)
 - **Git**: Version control
 
 ### For Deployment
 
 - **AWS CLI**: [Install AWS CLI](https://aws.amazon.com/cli/)
-- **Terraform**: [Install Terraform](https://www.terraform.io/downloads)
+- **Terraform v1.5+**: [Install Terraform](https://www.terraform.io/downloads)
 - **AWS Account**: With appropriate permissions
+- **Amazon ECR**: For storing Docker container images
 
 ### Recommended
 
 - **VS Code**: With recommended extensions (see `.vscode/extensions.json`)
-- **Docker**: For local testing with containerized dependencies
 
 ## Quick Start
 
@@ -87,28 +97,20 @@ cd fips-psn-emulator-service
 ### 2. Set Up Development Environment
 
 ```bash
-# Install dependencies
-uv sync
-
-# Activate virtual environment (if needed)
-source .venv/bin/activate  # Linux/macOS
-# or
-.venv\Scripts\activate.bat  # Windows
-
-# Install pre-commit hooks
-uv run pre-commit install
+# No root-level dependencies needed - each Lambda is independent
+# Install pre-commit hooks (optional)
+uv run pre-commit install  # Only if pre-commit is configured
 ```
 
 ### 3. Verify Installation
 
 ```bash
-# Run tests
-uv run pytest -v
+# Test individual Lambda functions using consolidated script
+uv run python scripts/test.py --service idp_api --coverage --html
+uv run python scripts/test.py --service player_account_api --coverage --html
 
-# Check code quality
-uv run black --check services libs tests
-uv run ruff check services libs tests
-uv run mypy services libs
+# Test all Lambdas
+uv run python scripts/test.py --service all --coverage --html
 ```
 
 ## Development Workflow
@@ -117,66 +119,76 @@ uv run mypy services libs
 
 ```
 fips-psn-emulator-service/
-├── services/                   # Lambda functions (services)
+├── services/                   # Lambda functions (independent containers)
 │   ├── idp_api/                # Identity Provider API
 │   │   ├── README.md           # Service-specific documentation
-│   │   ├── src/                # 🆕 Source code directory
+│   │   ├── Dockerfile          # Multi-stage Docker build
+│   │   ├── pyproject.toml      # IDP API dependencies only
+│   │   ├── src/                # Source code directory
 │   │   │   ├── __init__.py
 │   │   │   ├── handler.py      # Lambda handler
 │   │   │   ├── service.py      # Business logic
 │   │   │   └── models.py       # Pydantic models
-│   │   └── tests/              # Unit & integration tests
-│   │       ├── unit/
-│   │       │   ├── __init__.py
-│   │       │   ├── test_handler.py     # Unit tests for handler
-│   │       │   └── test_service.py     # Unit tests for service
-│   │       └── integration/
-│   │           ├── __init__.py
-│   │           └── test_integration.py # Integration tests
+│   │   ├── tests/              # Unit & integration tests
+│   │   │   ├── unit/
+│   │   │   └── integration/
 │   └── player_account_api/     # Player Account API
 │       ├── README.md           # Service-specific documentation
-│       ├── src/                # 🆕 Source code directory
+│       ├── Dockerfile          # Multi-stage Docker build
+│       ├── pyproject.toml      # Player Account API dependencies only
+│       ├── src/                # Source code directory
 │       │   ├── __init__.py
 │       │   ├── handler.py
 │       │   ├── service.py
 │       │   └── models.py
-│       └── tests/
-│           ├── unit/
-│           │   ├── __init__.py
-│           │   ├── test_handler.py     # Unit tests for handler
-│           │   └── test_service.py     # Unit tests for service
-│           └── integration/
-│               ├── __init__.py
-│               └── test_integration.py # Integration tests
+│       ├── tests/              # Unit & integration tests
+│       │   ├── unit/
+│       │   └── integration/
 ├── libs/                       # Shared libraries
 │   └── common/                  # Common utilities
-│       ├── src/                # 🆕 Source code directory
-│       │   ├── __init__.py
-│       │   ├── exceptions.py   # Custom exceptions
-│       │   ├── logger.py       # Logging utilities
-│       │   └── models.py       # Common models
-│       └── __init__.py
+│       ├── pyproject.toml      # Common library dependencies
+│       └── src/                # Source code directory
+│           ├── __init__.py
+│           ├── exceptions.py   # Custom exceptions
+│           ├── logger.py       # AWS Lambda Powertools logger
+│           └── models.py       # Common response models
+├── scripts/                    # Orchestration scripts
+│   ├── build.py                # Consolidated build script for all Lambdas
+│   ├── test.py                 # Consolidated pytest runner for all Lambdas
+│   ├── build_all.py            # Legacy build script (deprecated)
+│   └── deploy.py               # Deploy images to AWS
 ├── tests/
 │   └── e2e/                    # End-to-end tests
 ├── infra/terraform/            # Infrastructure as Code
-│   ├── main.tf
-│   ├── lambda.tf
-│   ├── api_gateway.tf
-│   └── variables.tf
+│   ├── main.tf                 # Provider and backend
+│   ├── lambda.tf               # Lambda functions (container-based)
+│   ├── api_gateway.tf          # API Gateway configuration
+│   ├── ecr.tf                  # ECR repositories
+│   ├── variables.tf            # Input variables
+│   └── outputs.tf              # Output values
 ├── .vscode/                    # VS Code configuration
-├── .github/                    # GitHub Actions & Copilot instructions
-├── pyproject.toml              # Project configuration
-└── README.md                   # This file
+├── .claude/                    # Claude Code configuration
+├── pyproject.toml              # Root project configuration (DEPRECATED)
+├── pytest.ini                  # Pytest configuration for all Lambdas
+├── README.md                   # This file
+├── README_DOCKER.md            # Docker deployment guide
+├── MIGRATION_SUMMARY.md        # Docker migration details
+└── CLAUDE.md                   # Claude Code guidance
 ```
 
-### 🆕 Code Organization (Recent Updates)
+### Docker-Based Architecture
 
-**New `src/` Directory Structure:**
-- All Python source code is now organized in `src/` directories
-- **Lambda Functions**: `services/{name}/src/`
-- **Shared Libraries**: `libs/common/src/`
-- **Tests**: Remain outside `src/` for clear separation
-- **Benefits**: Cleaner deployments, better import organization
+**Per-Lambda Independence:**
+- Each Lambda has its own `Dockerfile` with multi-stage build
+- Each Lambda has its own `pyproject.toml` with minimal dependencies
+- Docker images built from `public.ecr.aws/lambda/python:3.13` base image
+- Images pushed to Amazon ECR for Lambda deployment
+
+**Key Benefits:**
+- **Dependency Isolation**: Each Lambda only includes packages it needs
+- **Smaller Images**: Multi-stage builds remove build tools from final image
+- **Independent Deployment**: Update one Lambda without affecting others
+- **Consistent Environment**: Same container runtime locally and in AWS
 
 **Import Examples:**
 ```python
@@ -184,7 +196,7 @@ fips-psn-emulator-service/
 from .models import AuthenticationRequest
 from .service import IDPService
 
-# Cross-module imports
+# Cross-module imports (common library)
 from libs.common.src.exceptions import ValidationException
 from libs.common.src.logger import get_logger
 ```
@@ -194,89 +206,78 @@ from libs.common.src.logger import get_logger
 #### Run Tests
 
 ```bash
-# All tests
-uv run pytest -v
+# Test specific Lambda (recommended approach)
+uv run python scripts/test.py --service idp_api --coverage --html
 
-# Unit tests only
-uv run pytest -v -m unit
+# Test another Lambda
+uv run python scripts/test.py --service player_account_api --coverage --html
 
-# Integration tests
-uv run pytest -v -m integration
+# Test all Lambdas
+uv run python scripts/test.py --service all --coverage --html
 
-# With coverage report
-uv run pytest --cov=services --cov=libs --cov-report=html
-open htmlcov/index.html  # View coverage report
+# Run specific test types
+uv run python scripts/test.py --service all --type unit --verbose
+uv run python scripts/test.py --service all --type integration --verbose
 
-# Run specific Lambda's unit tests
-uv run pytest services/idp_api/tests/unit/
+# Run tests in parallel
+uv run python scripts/test.py --service all --parallel --workers 4
 
-# Run specific Lambda's integration tests
-uv run pytest services/player_account_api/tests/integration/
+# Build and test
+uv run python scripts/build.py --service all --tag test
+uv run python scripts/test.py --service all --coverage
 ```
 
-#### Code Formatting
+#### Code Formatting and Quality
 
 ```bash
-# Format code
-uv run black services libs tests
-uv run isort services libs tests
+# For individual Lambda
+cd services/idp_api
+uv run black src/
+uv run ruff check src/
+uv run mypy src/
 
-# Check formatting (CI mode)
-uv run black --check services libs tests
-uv run isort --check services libs tests
+# Or use the consolidated test script which includes quality checks
+uv run python scripts/test.py --service idp_api --coverage --html
+
+# Build Docker images
+uv run python scripts/build.py --service idp_api --tag dev
+
+# Build all Lambda images
+uv run python scripts/build.py --service all --tag v1.0.0
 ```
 
-#### Linting and Type Checking
+### Local Testing with Docker
+
+#### Test Lambda Containers Locally
 
 ```bash
-# Lint code
-uv run ruff check services libs tests
+# Build IDP API image
+uv run python scripts/build.py --service idp_api --tag local
 
-# Auto-fix issues
-uv run ruff check --fix services libs tests
+# Run Lambda locally
+docker run -p 9000:8080 fips-psn-idp-api:local
 
-# Type checking
-uv run mypy services libs
-
-# Security scanning
-uv run bandit -r services libs
+# In another terminal, test with mock event
+curl -XPOST "http://localhost:9000/2015-03-31/functions/function/invocations" \
+  -d '{
+    "httpMethod": "POST",
+    "path": "/auth/token",
+    "body": "{\"username\":\"testuser\",\"password\":\"password123\"}"
+  }'
 ```
 
-#### Run All Quality Checks
-
-```bash
-# Single command for all checks
-uv run black --check services libs tests && \
-uv run isort --check services libs tests && \
-uv run ruff check services libs tests && \
-uv run mypy services libs && \
-uv run pytest --cov=services --cov=libs --cov-fail-under=80
-```
-
-### Local Testing with Mock Events
-
-Create a test event file `test_event.json`:
-
-```json
-{
-  "httpMethod": "POST",
-  "path": "/auth/token",
-  "headers": {
-    "Content-Type": "application/json"
-  },
-  "body": "{\"username\":\"testuser\",\"password\":\"password123\"}"
-}
-```
-
-Run handler locally:
+#### Test Handler Code Directly
 
 ```python
-# 🆕 Updated import path for new structure
+# Test handler directly (requires Python environment setup)
 from services.idp_api.src.handler import lambda_handler
 import json
 
-with open('test_event.json') as f:
-    event = json.load(f)
+event = {
+    "httpMethod": "POST",
+    "path": "/auth/token",
+    "body": "{\"username\":\"testuser\",\"password\":\"password123\"}"
+}
 
 response = lambda_handler(event, None)
 print(json.dumps(response, indent=2))
@@ -292,38 +293,42 @@ print(json.dumps(response, indent=2))
    - "Debug: Player Account API Lambda" (`services.player_account_api.src.handler`)
    - "Python: pytest" (for tests)
 
-## Building for Deployment
+## Building Docker Images
 
-### Build Lambda Packages
-
-Lambda packages are automatically built by Terraform from `src/` directories, but you can build manually:
+### Build Individual Lambda
 
 ```bash
-# Create build directory
-mkdir -p build
+# Build specific Lambda with tag
+uv run python scripts/build.py --service idp_api --tag v1.0.0
 
-# Install dependencies to build directory
-uv pip install --target build/python -r pyproject.toml
-
-# Package Lambda (from src directory)
-cd services/idp_api/src
-zip -r ../../build/idp-api.zip .
-cd ../../..
+# Build without cache (clean build)
+uv run python scripts/build.py --service idp_api --no-cache --tag v1.0.0
 ```
 
-### Package with Dependencies
-
-For production deployments with dependencies:
+### Build All Lambdas
 
 ```bash
-# Install production dependencies
-uv pip install --python-platform linux --python-version 3.13 \
-  -r pyproject.toml --target build/python/lib/python3.13/site-packages
+# Build all Lambda images
+uv run python scripts/build.py --service all --tag v1.0.0
 
-# Create layer
-cd build
-zip -r lambda-layer.zip python
-cd ..
+# Build specific services only
+uv run python scripts/build.py --service idp_api player_account_api --tag v1.0.0
+
+# Build without cache
+uv run python scripts/build.py --service all --no-cache --tag v1.0.0
+
+# Build and push to ECR
+uv run python scripts/build.py --service all --tag v1.0.0 --push --ecr-repo-map '{"idp_api": "123456789012.dkr.ecr.us-east-1.amazonaws.com/fips-psn-idp-api", "player_account_api": "123456789012.dkr.ecr.us-east-1.amazonaws.com/fips-psn-player-account-api"}'
+```
+
+### Test Docker Images
+
+```bash
+# Verify images were built
+docker images | grep fips-psn
+
+# Test image locally
+docker run -p 9000:8080 fips-psn-idp-api:v1.0.0
 ```
 
 ## Deployment
@@ -337,53 +342,46 @@ cd ..
    # Enter: AWS Access Key ID, Secret Access Key, Region, Output format
    ```
 
-2. **S3 Bucket for Terraform State** (recommended):
+2. **Verify Docker and AWS Access**:
    ```bash
-   aws s3 mb s3://your-terraform-state-bucket
+   docker --version
+   aws sts get-caller-identity
    ```
 
-### Deploy with Terraform
+### Deploy Infrastructure and Images
 
-#### 1. Initialize Terraform
+#### Step 1: Deploy AWS Infrastructure
 
 ```bash
 cd infra/terraform
 terraform init
-```
-
-#### 2. Configure Variables
-
-Create `terraform.tfvars`:
-
-```hcl
-aws_region              = "us-east-1"
-environment             = "dev"
-project_name            = "psn-emulator"
-lambda_timeout          = 30
-lambda_memory_size      = 512
-log_retention_days      = 7
-enable_api_gateway_logging = true
-```
-
-#### 3. Plan Deployment
-
-```bash
 terraform plan
-```
-
-Review the planned changes.
-
-#### 4. Deploy Infrastructure
-
-```bash
 terraform apply
 ```
 
-Type `yes` to confirm.
+This creates:
+- ECR repositories for each Lambda
+- Lambda functions (placeholder images initially)
+- API Gateway configuration
+- IAM roles and permissions
 
-#### 5. Get API Gateway URL
+#### Step 2: Build and Deploy Lambda Images
 
 ```bash
+# Build and deploy all Lambdas
+python scripts/deploy.py --tag v1.0.0 --environment dev
+
+# Deploy specific Lambda only
+python scripts/deploy.py --tag v1.0.0 --services idp_api --environment dev
+
+# Deploy without building (use existing local images)
+python scripts/deploy.py --tag v1.0.0 --no-build --environment dev
+```
+
+#### Step 3: Get API Gateway URL
+
+```bash
+cd infra/terraform
 terraform output api_gateway_url
 ```
 
@@ -416,11 +414,14 @@ curl -X POST $API_URL/players \
 After code changes:
 
 ```bash
-cd infra/terraform
-terraform apply
-```
+# Option 1: Build and deploy specific Lambda
+uv run python scripts/build.py --service idp_api --tag v1.0.1
+uv run python scripts/deploy.py --tag v1.0.1 --services idp_api --environment dev
 
-Terraform detects code changes via `source_code_hash` and updates Lambdas automatically.
+# Option 2: Build and deploy all
+uv run python scripts/build.py --service all --tag v1.0.1
+uv run python scripts/deploy.py --tag v1.0.1 --environment dev
+```
 
 ### Destroy Infrastructure
 
@@ -428,6 +429,8 @@ Terraform detects code changes via `source_code_hash` and updates Lambdas automa
 cd infra/terraform
 terraform destroy
 ```
+
+**Note**: This will also delete ECR repositories and all Docker images.
 
 ## Environment Variables
 
@@ -527,58 +530,97 @@ enable_xray_tracing = true
 
 ### Common Issues
 
-#### 1. Import Errors in Lambda
+#### 1. Docker Build Fails
+
+**Problem**: Docker build fails with errors
+
+**Solution**:
+```bash
+# Check Docker is running
+docker ps
+
+# Clean Docker cache
+docker system prune -a
+
+# Rebuild without cache
+python scripts/build_all.py --no-cache --tag v1.0.0
+
+# Update uv if needed
+pip install --upgrade uv
+```
+
+#### 2. Import Errors in Lambda
 
 **Problem**: `ModuleNotFoundError` when Lambda executes
 
 **Solution**:
-- Check Terraform `source_dir` paths point to correct `src/` directories
-- Ensure dependencies are included in Lambda package or use Lambda layers
+- Check Dockerfile copies all necessary files from `src/` directories
+- Verify common library is copied to correct path in container
+- Check Lambda handler path in Terraform configuration
+- Rebuild with `--no-cache` to ensure fresh dependencies
 
-#### 2. Permission Denied
+#### 3. ECR Authentication Issues
 
-**Problem**: Lambda can't access AWS services
+**Problem**: Cannot push images to ECR
 
-**Solution**: Update IAM role in `infra/terraform/lambda.tf` with required permissions
+**Solution**:
+```bash
+# Verify AWS credentials
+aws sts get-caller-identity
 
-#### 3. Cold Start Latency
+# Get ECR login manually
+aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin <account-id>.dkr.ecr.us-east-1.amazonaws.com
+```
+
+#### 4. Lambda Update Fails
+
+**Problem**: Lambda function update fails
+
+**Solution**:
+```bash
+# Check Lambda exists
+aws lambda list-functions --query 'Functions[?contains(FunctionName, `psn-emulator`)].FunctionName'
+
+# Check ECR image exists
+aws ecr describe-images --repository-name psn-emulator-dev-idp-api
+
+# Verify image URI in Terraform output
+cd infra/terraform
+terraform output ecr_repository_idp_api
+```
+
+#### 5. Cold Start Latency
 
 **Problem**: First request is slow
 
 **Solutions**:
+- Optimize Docker image size (multi-stage builds already configured)
+- Lazy load heavy imports in Lambda code
+- Increase memory allocation (improves CPU)
+- Use Provisioned Concurrency for critical functions
 
-- Use Lambda warming (scheduled events)
-- Optimize imports (lazy loading)
-- Increase memory allocation
-- Use Provisioned Concurrency
+#### 6. Tests Failing Locally
 
-#### 4. Tests Failing Locally
-
-**Problem**: Tests pass in CI but fail locally
+**Problem**: Tests fail when running locally
 
 **Solution**:
-
 ```bash
-# Clean environment
-rm -rf .venv
-uv sync
-uv run pytest -v
+# Ensure dependencies are installed for specific Lambda
+cd services/idp_api
+uv sync --group dev
+
+# Run tests with verbose output
+uv run python ../../scripts/test.py --service idp_api --type unit --verbose
+
+# Check imports work with new structure
+python -c "from services.idp_api.src.handler import lambda_handler; print('Import OK')"
 ```
 
-#### 5. Module Not Found Errors
-
-**Problem**: `ModuleNotFoundError` with new `src/` structure
-
-**Solution**: Ensure import paths use new structure:
-- Libraries: `from libs.common.src.exceptions import ...`
-- Tests: `from services.idp_api.src.handler import ...`
-
-#### 6. Terraform State Lock
+#### 7. Terraform State Lock
 
 **Problem**: Terraform state is locked
 
 **Solution**:
-
 ```bash
 terraform force-unlock <lock-id>
 ```
@@ -673,18 +715,21 @@ For issues, questions, or contributions:
 - ✅ Individual service documentation
 - ✅ Test organization (unit/integration)
 - ✅ Terraform infrastructure
-- ✅ CI/CD pipeline
-- ✅ **NEW**: src/ directory structure for better organization
-- ✅ **NEW**: Separation of source code and tests
+- ✅ **NEW**: Docker-based Lambda deployment with container images
+- ✅ **NEW**: Per-Lambda dependency isolation
+- ✅ **NEW**: Multi-stage Docker builds for optimization
+- ✅ **NEW**: Cross-platform Python build and test scripts
+- ✅ **NEW**: ECR repository management for container images
 
 ### Phase 2 (Planned)
 
 - [ ] DynamoDB integration for persistence
-- [ ] JWT token validation
-- [ ] API Gateway authorizer
+- [ ] JWT token validation with proper signing
+- [ ] API Gateway authorizer for protected endpoints
 - [ ] Additional partner APIs
 - [ ] Service-specific monitoring and alerting
 - [ ] Automated API documentation generation
+- [ ] GitHub Actions CI/CD pipeline (if needed)
 
 ### Phase 3 (Future)
 

@@ -32,3 +32,13 @@ output "cloudwatch_log_group_player_account_api" {
   description = "CloudWatch log group for Player Account API"
   value       = aws_cloudwatch_log_group.player_account_api.name
 }
+
+output "ecr_repository_idp_api" {
+  description = "ECR repository URL for IDP API Lambda"
+  value       = aws_ecr_repository.idp_api.repository_url
+}
+
+output "ecr_repository_player_account_api" {
+  description = "ECR repository URL for Player Account API Lambda"
+  value       = aws_ecr_repository.player_account_api.repository_url
+}

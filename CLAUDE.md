@@ -8,22 +8,24 @@ This is the **PSN Partner Emulator Service** (`fips-psn-emulator-service`) - a s
 
 ### Architecture
 
-The project follows a **serverless microservices pattern** with:
+The project follows a **Docker-based microservices pattern** with:
 - **API Gateway HTTP API**: Single entry point that routes to different Lambda functions
-- **Two Lambda Functions**:
+- **Two Lambda Functions** (deployed as Docker containers):
   - `idp_api` - Identity Provider API for authentication and token management
   - `player_account_api` - Player account management and statistics
-- **Shared Libraries**: Common utilities, models, exceptions, and logging in `libs/common/src/`
+- **Shared Libraries**: Common utilities, models, exceptions, and logging in `libs/common/`
 - **Terraform Infrastructure**: Infrastructure as Code for AWS deployment in `infra/terraform/`
+- **Amazon ECR**: Container registry for Lambda Docker images
 
 ### Key Technologies
 
 - **Python 3.13+** with **uv** package manager
+- **Docker** for containerized Lambda deployment
 - **AWS Lambda Powertools v3.4.0+** for structured logging and utilities
 - **Pydantic v2.10.0+** for request/response validation
 - **pytest v8.3.0+** for testing with comprehensive coverage
 - **Terraform v1.5.0+** for infrastructure deployment
-- **boto3 v1.35.0+** for AWS SDK interactions
+- **Amazon ECR** for Docker image storage
 
 ## Project Structure
 
@@ -31,132 +33,140 @@ The project follows a **serverless microservices pattern** with:
 python_lambdas/
 ├── .claude/                      # Claude Code configuration
 ├── .vscode/                      # VS Code debugging configurations
-│   ├── launch.json               # Debug configurations for Lambdas
-│   ├── settings.json             # VS Code settings
-│   ├── extensions.json           # Recommended extensions
-│   └── tasks.json                # Build tasks
 ├── libs/                         # Shared libraries across Lambdas
 │   └── common/                   # Common utilities
-│       ├── __init__.py
-│       └── src/                  # Source code (NEW STRUCTURE)
-│           ├── __init__.py
+│       ├── pyproject.toml        # Common library dependencies
+│       └── src/                  # Source code
 │           ├── exceptions.py     # Custom exception hierarchy
-│           ├── logger.py         # AWS Lambda Powertools logger configuration
-│           └── models.py         # Common response models (APIResponse, ErrorResponse)
+│           ├── logger.py         # AWS Lambda Powertools logger
+│           └── models.py         # Common response models
 ├── services/                     # Lambda functions (services)
 │   ├── idp_api/                  # Identity Provider API Lambda
-│   │   ├── src/                  # Source code (NEW STRUCTURE)
-│   │   │   ├── __init__.py
+│   │   ├── Dockerfile            # Multi-stage Docker build
+│   │   ├── pyproject.toml        # Function-specific dependencies
+│   │   ├── src/                  # Source code
 │   │   │   ├── handler.py        # Lambda entry point with routing
 │   │   │   ├── service.py        # Business logic
 │   │   │   └── models.py         # Pydantic request/response models
-│   │   └── tests/                # Unit and integration tests
-│   │       ├── integration/
-│   │       │   └── test_integration.py
-│   │       └── unit/
-│   │           ├── test_handler.py
-│   │           └── test_service.py
+│   │   ├── tests/                # Unit and integration tests
+│   │   │   ├── integration/
+│   │   │   └── unit/
 │   └── player_account_api/       # Player Account API Lambda
-│       ├── src/                  # Source code (NEW STRUCTURE)
-│       │   ├── __init__.py
-│       │   ├── handler.py
-│       │   ├── service.py
-│       │   └── models.py
+│       ├── Dockerfile            # Multi-stage Docker build
+│       ├── pyproject.toml        # Function-specific dependencies
+│       ├── src/                  # Source code
 │       └── tests/                # Unit and integration tests
 │           ├── integration/
-│           │   └── test_integration.py
 │           └── unit/
-│               ├── test_handler.py
-│               └── test_service.py
-├── tests/                        # End-to-end tests
-│   └── e2e/
-│       ├── conftest.py           # Pytest fixtures for E2E tests
-│       └── __init__.py
+├── scripts/                      # Root-level orchestration scripts
+│   ├── build.py                  # Consolidated build script for all Lambdas
+│   ├── test.py                   # Consolidated pytest runner for all Lambdas
+│   └── deploy.py                 # Deploy images to AWS
 ├── infra/                        # Infrastructure as Code
 │   └── terraform/                # Terraform configurations
 │       ├── main.tf               # Provider and backend configuration
-│       ├── lambda.tf             # Lambda function definitions
+│       ├── ecr.tf                # ECR repositories for Docker images
+│       ├── lambda.tf             # Lambda function definitions (container-based)
 │       ├── api_gateway.tf        # API Gateway routing
 │       ├── variables.tf          # Input variables
-│       └── outputs.tf            # Output values
-├── pyproject.toml                # Project configuration and dependencies
-├── .pre-commit-config.yaml       # Pre-commit hooks configuration
-├── .coverage                     # Coverage data file
-├── coverage.xml                  # Coverage report in XML format
-├── htmlcov/                      # HTML coverage report directory
-├── uv.lock                       # Lock file for uv package manager
+│       └── outputs.tf            # Output values (includes ECR URLs)
+├── pyproject.toml                # Root project configuration (deprecated for Lambda code)
 ├── README.md                     # Project documentation
+├── README_DOCKER.md              # Docker deployment guide
 ├── SETUP_CHECKLIST.md            # Setup checklist for developers
 └── CLAUDE.md                     # This file - Claude Code guidance
 ```
 
-## Code Structure Changes (Recent Updates)
+## NEW: Docker-Based Architecture
 
-### 🆕 NEW: src/ Directory Structure
-All Python source code has been reorganized into `src/` directories for better separation of concerns:
+### Per-Lambda Independence
+Each Lambda function is **completely independent**:
+- **Separate `pyproject.toml`**: Only includes dependencies needed by that specific function
+- **Separate `Dockerfile`**: Multi-stage build optimized for that function
+- **Independent builds**: Each Lambda can be built and deployed separately
+- **Isolated dependencies**: No unnecessary packages included
 
-- **Lambda Functions**: Each Lambda now has its code in `services/{name}/src/`
-- **Shared Libraries**: Common code is in `libs/common/src/`
-- **Benefits**: Cleaner deployment, better import organization, and separation from tests
+### Benefits
+- **Smaller Lambda images**: Only required dependencies included
+- **Faster builds**: Changes to one Lambda don't require rebuilding others
+- **Better security**: Minimal attack surface per function
+- **Independent versioning**: Each Lambda can have different versions deployed
 
-### Import Path Updates
-- **Within Lambda files**: Use relative imports (`.models`, `.service`)
-- **Cross-module imports**:
-  - Libraries: `from libs.common.src.exceptions import ...`
-  - Tests: `from services.idp_api.src.handler import ...`
+### Docker Multi-Stage Builds
+All Dockerfiles use multi-stage builds:
+1. **Builder stage**: Installs `uv`, syncs dependencies, builds packages
+2. **Runtime stage**: Copies only runtime artifacts from builder (no build tools)
+
+This results in minimal final image sizes.
 
 ## Development Commands
 
 ### Environment Setup
 ```bash
-# Install dependencies
-uv sync
+# Install uv package manager
+pip install uv
 
-# Install pre-commit hooks
-uv run pre-commit install
+# No need to sync at root - each Lambda is independent
+```
+
+### Building Docker Images
+
+```bash
+# Build a specific Lambda
+uv run python scripts/build.py --service idp_api --tag v1.0.0
+
+# Build all Lambdas
+uv run python scripts/build.py --service all --tag v1.0.0
+
+# Build without cache (clean build)
+uv run python scripts/build.py --service all --no-cache --tag v1.0.0
+
+# Build multiple specific services
+uv run python scripts/build.py --service idp_api player_account_api --tag v1.0.0
+
+# Build and push to ECR
+uv run python scripts/build.py --service all --tag v1.0.0 --push --ecr-repo-map '{"idp_api": "123456789012.dkr.ecr.us-east-1.amazonaws.com/fips-psn-idp-api", "player_account_api": "123456789012.dkr.ecr.us-east-1.amazonaws.com/fips-psn-player-account-api"}'
 ```
 
 ### Testing
+
 ```bash
-# Run all tests
-uv run pytest -v
+# Test a specific Lambda
+uv run python scripts/test.py --service idp_api --coverage --html
 
-# Run specific test types
-uv run pytest -v -m unit          # Unit tests only
-uv run pytest -v -m integration   # Integration tests only
-uv run pytest -v -m e2e           # End-to-end tests (requires deployed infrastructure)
+# Test all Lambdas
+uv run python scripts/test.py --service all --coverage
 
-# Run with coverage
-uv run pytest --cov=services --cov=libs --cov-report=html --cov-fail-under=80
-```
+# Run only unit tests
+uv run python scripts/test.py --service all --type unit --verbose
 
-### Code Quality
-```bash
-# Format code
-uv run black services libs tests
-uv run isort services libs tests
+# Run only integration tests
+uv run python scripts/test.py --service all --type integration --verbose
 
-# Lint and type checking
-uv run ruff check services libs tests
-uv run mypy services libs
+# Run tests in parallel
+uv run python scripts/test.py --service all --parallel --workers 4
 
-# Security scanning
-uv run bandit -r services libs
-
-# Run all quality checks (used in CI)
-uv run black --check services libs tests && \
-uv run isort --check services libs tests && \
-uv run ruff check services libs tests && \
-uv run mypy services libs && \
-uv run pytest --cov=services --cov=libs --cov-fail-under=80
+# Run with coverage and HTML report
+uv run python scripts/test.py --service all --coverage --html --html-dir coverage_report
 ```
 
 ### Deployment
+
 ```bash
+# Deploy infrastructure first (creates ECR repos)
 cd infra/terraform
 terraform init
 terraform plan
 terraform apply
+
+# Build and deploy all Lambdas
+uv run python scripts/deploy.py --tag v1.0.0 --environment dev
+
+# Deploy specific Lambda only
+uv run python scripts/deploy.py --tag v1.0.0 --services idp_api --environment dev
+
+# Deploy without building (use existing local images)
+uv run python scripts/deploy.py --tag v1.0.0 --no-build --environment dev
 ```
 
 ## Code Architecture Patterns
@@ -167,6 +177,9 @@ Each Lambda follows this pattern:
 2. **src/service.py**: Business logic separated from HTTP concerns
 3. **src/models.py**: Pydantic models for request/response validation
 4. **tests/**: Comprehensive unit and integration tests (outside src/)
+5. **Dockerfile**: Multi-stage build for containerized deployment
+6. **pyproject.toml**: Function-specific dependencies only
+7. **pytest**: Testing with unit and integration markers
 
 ### Error Handling
 - Custom exceptions inherit from `PSNEmulatorException` ([libs/common/src/exceptions.py](libs/common/src/exceptions.py:4))
@@ -203,17 +216,21 @@ Each Lambda follows this pattern:
 ### File Patterns
 - **Source Code**: `{module}/src/` (e.g., `services/idp_api/src/`)
 - **Tests**: `{module}/tests/` (outside src/)
+- **Scripts**: `{module}/scripts/` (build.py, test.py)
 - **Modules**: `lowercase_with_underscores.py`
 - **Classes**: `PascalCase`
 - **Functions**: `lowercase_with_underscores`
 - **Constants**: `UPPERCASE_WITH_UNDERSCORES`
 
 ### Testing Requirements
-- Minimum 80% test coverage across `services` and `libs`
+- Each Lambda maintains its own test coverage (target: 80%+)
 - Unit tests for business logic (in `tests/unit/`)
 - Integration tests for Lambda handlers (in `tests/integration/`)
-- E2E tests for deployed infrastructure (in `tests/e2e/`)
+- E2E tests for deployed infrastructure (in root `tests/e2e/`)
 - Use pytest fixtures for test setup
+- Use consolidated test script: `uv run python scripts/test.py --service <service_name>`
+- Mark tests with `@pytest.mark.unit` or `@pytest.mark.integration`
+- Run tests with coverage: `uv run python scripts/test.py --service all --coverage --html`
 
 ## API Endpoints
 
@@ -230,47 +247,58 @@ Each Lambda follows this pattern:
 
 ### Player Account API (`/players/*`)
 - `POST /players` - Create player
-  - Request: `CreatePlayerRequest` (username, email, display_name)
-  - Response: `PlayerAccount` (player_id, username, email, status, level, etc.)
 - `GET /players` - List all players
-  - Response: `{"players": [...], "count": N}`
 - `GET /players/{player_id}` - Get specific player
-  - Response: `PlayerAccount`
 - `PUT /players/{player_id}` - Update player
-  - Request: `UpdatePlayerRequest` (display_name, email, status)
-  - Response: Updated `PlayerAccount`
 - `DELETE /players/{player_id}` - Delete player
-  - Response: 204 No Content
 - `GET /players/{player_id}/stats` - Get player statistics
-  - Response: `PlayerStats` (total_games, wins, losses, win_rate, playtime)
 
 ## Configuration Details
 
-### pyproject.toml
-- Project name: `fips-psn-emulator-service`
-- Python requirement: >=3.13
-- Main dependencies: pydantic, aws-lambda-powertools, boto3, requests
-- Dev dependencies: pytest, black, ruff, mypy, bandit, pre-commit
-- Build backend: hatchling with packages = ["libs/*/src/**", "services/*/src/**"]
+### Per-Lambda pyproject.toml
+Each Lambda has minimal dependencies:
 
-### Pre-commit Hooks
-- Black code formatting
-- isort import sorting
-- Ruff linting with auto-fix
-- mypy type checking
-- Bandit security scanning
-- General file checks (whitespace, JSON/YAML validation)
+**IDP API** (`services/idp_api/pyproject.toml`):
+```toml
+dependencies = [
+    "pydantic[email]>=2.10.0",
+    "aws-lambda-powertools>=3.4.0",
+]
+```
+
+**Player Account API** (`services/player_account_api/pyproject.toml`):
+```toml
+dependencies = [
+    "pydantic[email]>=2.10.0",
+    "aws-lambda-powertools>=3.4.0",
+]
+```
+
+**Common Library** (`libs/common/pyproject.toml`):
+```toml
+dependencies = [
+    "pydantic>=2.10.0",
+    "aws-lambda-powertools>=3.4.0",
+]
+```
 
 ### Terraform Configuration
 - Provider: AWS v5.0+, Terraform v1.5.0+
 - Backend: S3 (configurable)
-- Variables: environment, region, lambda settings, logging options
+- Variables: environment, region, lambda settings, image tags, logging options
 - Resources:
+  - **ECR repositories** (one per Lambda) with lifecycle policies
   - API Gateway HTTP API with CORS
-  - Lambda functions with proper IAM roles
+  - Lambda functions with **container image package type**
   - CloudWatch log groups with configurable retention
   - Optional X-Ray tracing
-- **Lambda Packaging**: Each Lambda packaged from its `src/` directory separately
+- **Lambda Packaging**: Each Lambda deployed as Docker container from ECR
+
+### Docker Configuration
+- Base image: `public.ecr.aws/lambda/python:3.13`
+- Multi-stage builds for minimal image size
+- Common library installed from local path during build
+- Environment variables set in Lambda configuration (Terraform)
 
 ### VS Code Debugging
 Configurations available in `.vscode/launch.json`:
@@ -282,34 +310,77 @@ Configurations available in `.vscode/launch.json`:
 ## Common Development Tasks
 
 ### Adding a New Lambda Function
-1. Create directory: `services/new_api/src/`
-2. Add files: `handler.py`, `service.py`, `models.py`, `__init__.py`
-3. Follow existing patterns from other Lambdas
-4. Update Terraform configuration in `infra/terraform/lambda.tf`
-5. Add API Gateway routes in `infra/terraform/api_gateway.tf`
-6. Update pyproject.toml if needed for new dependencies
+1. Create directory structure:
+   ```
+   services/new_api/
+   ├── Dockerfile
+   ├── pyproject.toml
+   ├── src/
+   │   ├── __init__.py
+   │   ├── handler.py
+   │   ├── service.py
+   │   └── models.py
+   ├── tests/
+   │   ├── unit/
+   │   └── integration/
+   └── scripts/
+       ├── build.py
+       └── test.py
+   ```
+2. Copy and modify Dockerfile from existing Lambda
+3. Create `pyproject.toml` with only needed dependencies
+4. Add ECR repository in `infra/terraform/ecr.tf`
+5. Add Lambda function in `infra/terraform/lambda.tf`
+6. Add API Gateway routes in `infra/terraform/api_gateway.tf`
+7. Update `scripts/build_all.py` and `scripts/deploy.py` to include new service
+
+### Adding Dependencies to a Lambda
+1. Edit the Lambda's `pyproject.toml`:
+   ```toml
+   dependencies = [
+       "pydantic[email]>=2.10.0",
+       "aws-lambda-powertools>=3.4.0",
+       "new-package>=1.0.0",  # Add here
+   ]
+   ```
+2. Rebuild the Docker image:
+   ```bash
+   cd services/{lambda_name}
+   uv run python scripts/build.py --tag v1.1.0 --no-cache
+   ```
+3. Test and deploy:
+   ```bash
+   uv run python scripts/test.py --coverage
+   python ../../scripts/deploy.py --tag v1.1.0 --services {lambda_name}
+   ```
 
 ### Adding Shared Libraries
 1. Add code to `libs/common/src/`
-2. Update imports in Lambda files: `from libs.common.src.module import ...`
-3. Run tests to ensure imports work correctly
+2. Update `libs/common/pyproject.toml` if new dependencies needed
+3. Rebuild ALL Lambda images (since they include common library):
+   ```bash
+   python scripts/build_all.py --tag v1.1.0 --no-cache
+   ```
+4. Run tests to ensure imports work correctly
+5. Deploy all Lambdas
 
-### Debugging
-- Use VS Code debugging configurations (see `.vscode/launch.json`)
-- Debug configurations available for individual Lambda handlers
-- Test locally with mock events
-- View CloudWatch logs after deployment
+### Debugging Locally
+1. **With Docker:**
+   ```bash
+   # Build the image
+   python services/idp_api/scripts/build.py --tag dev
 
-### Local Testing with Mock Events
-Create test event JSON files and use handlers directly:
-```python
-from services.idp_api.src.handler import lambda_handler
-import json
+   # Run locally
+   docker run -p 9000:8080 fips-psn-idp-api:dev
 
-with open('test_event.json') as f:
-    event = json.load(f)
-response = lambda_handler(event, None)
-```
+   # Test with curl
+   curl -XPOST "http://localhost:9000/2015-03-31/functions/function/invocations" \
+     -d '{"body": "{\"username\":\"testuser\",\"password\":\"password123\"}"}'
+   ```
+
+2. **With VS Code:**
+   - Use the debugging configurations in `.vscode/launch.json`
+   - Debug configurations available for individual Lambda handlers
 
 ## Environment Variables
 
@@ -330,29 +401,30 @@ Configured in Terraform `infra/terraform/lambda.tf` for each Lambda function:
 - All inputs validated with Pydantic models
 - No secrets in code - use environment variables or AWS Secrets Manager
 - Least privilege IAM roles defined in Terraform
-- Security scanning with Bandit in CI/CD pipeline
+- ECR image scanning enabled (scans on push)
 - CORS configuration in API Gateway
 - Token-based authentication for protected endpoints
+- Docker multi-stage builds reduce attack surface
 
 ## Deployment Notes
 
-- **Separate Lambda Packaging**: Each Lambda packaged from its own `src/` directory
-- Terraform manages Lambda package creation automatically
-- Changes to Lambda code trigger updates via `source_code_hash`
-- API Gateway routes configured in `infra/terraform/api_gateway.tf`
-- Multi-environment support via Terraform variables
-- Lambda packaging excludes tests and cache files
-- Log retention configurable (default 7 days)
+- **Container-Based Deployment**: Lambdas deployed as Docker images from ECR
+- Each Lambda has its own ECR repository
+- Terraform uses `image_uri` with `package_type = "Image"`
+- `lifecycle.ignore_changes` on `image_uri` allows updates without Terraform
+- Image tags configurable via Terraform variables
+- Deploy script handles building, pushing, and Lambda updates
+- Multi-environment support via Terraform workspaces/variables
 
 ## Troubleshooting
 
 ### Common Issues
-1. **Import errors in Lambda**: Check packaging paths in Terraform (`source_dir` should point to `src/`)
-2. **Permission denied**: Update IAM roles in `infra/terraform/lambda.tf`
-3. **Cold start latency**: Consider Lambda warming or memory increase
-4. **Test failures locally**: Run `rm -rf .venv && uv sync`
-5. **Type checking errors**: Check imports and type hints in strict mode
-6. **Module not found errors**: Verify import paths match new `src/` structure
+1. **Docker build fails**: Check Docker is running, try `--no-cache`
+2. **uv sync errors**: Update uv (`pip install --upgrade uv`), clear cache
+3. **ECR authentication fails**: Run `aws ecr get-login-password` manually
+4. **Lambda update fails**: Verify ECR image exists, check Lambda IAM permissions
+5. **Import errors in Lambda**: Check Dockerfile COPY paths, verify common library location
+6. **Test failures locally**: Run `uv sync` in Lambda directory
 
 ### Debug Mode
 Enable detailed logging with `LOG_LEVEL=DEBUG` environment variable.
@@ -364,24 +436,58 @@ aws logs tail /aws/lambda/psn-emulator-dev-idp-api --follow
 
 # Player Account API logs
 aws logs tail /aws/lambda/psn-emulator-dev-player-account-api --follow
-
-# API Gateway logs (if enabled)
-aws logs tail /aws/apigateway/psn-emulator-dev --follow
 ```
 
 ### Terraform Issues
-- Backend configuration required for state management
-- Ensure AWS credentials are properly configured
-- Check variable values match expected types and constraints
-- Use `terraform validate` and `terraform plan` before applying
-- Verify `source_dir` paths in Lambda configurations point to correct `src/` directories
+- Run `terraform init` after adding new resources
+- Use `terraform validate` before apply
+- Check `image_uri` points to valid ECR repository
+- Ensure ECR repositories exist before creating Lambda functions
+- Verify Docker images are pushed before deploying
 
-## Recent Structural Changes Summary
+## Cross-Platform Support
 
-1. **src/ Directory Migration**: All Python source code moved to `src/` directories
-2. **Import Path Updates**: All imports updated to reflect new structure
-3. **Terraform Updates**: Lambda packaging now uses `src/` directories
-4. **Build Configuration**: pyproject.toml updated for new package locations
-5. **Debugging Configurations**: VS Code launch configs updated for new module paths
+All Python scripts work on **Windows, Linux, and macOS**:
+- Use `python` or `python3` depending on system
+- Scripts use `Path` from `pathlib` for cross-platform paths
+- No bash scripts - all orchestration in Python
+- Docker commands work identically across platforms
 
-These changes provide better organization, cleaner deployments, and clearer separation between source code and tests.
+**Windows (PowerShell):**
+```powershell
+uv run python scripts\build.py --service all --tag v1.0.0
+uv run python scripts\test.py --service all --coverage
+```
+
+**Linux/macOS:**
+```bash
+python3 scripts/build.py --service all --tag v1.0.0
+python3 scripts/test.py --service all --coverage
+```
+
+## Additional Documentation
+
+- [README_DOCKER.md](README_DOCKER.md) - Detailed Docker deployment guide
+- [README.md](README.md) - Project overview and setup
+- [SETUP_CHECKLIST.md](SETUP_CHECKLIST.md) - Setup checklist
+
+## Recent Architectural Changes
+
+### Migration to Docker-Based Deployment
+- **From**: ZIP-based Lambda deployment with shared dependencies
+- **To**: Docker container images with per-Lambda dependencies
+- **Benefits**:
+  - Isolated dependencies per Lambda
+  - Smaller deployment artifacts
+  - Better reproducibility
+  - Industry-standard containerization
+
+### Per-Lambda Configuration
+- Each Lambda now has its own `pyproject.toml` with minimal dependencies
+- No more monolithic dependency file
+- Common library packaged separately and included during Docker build
+
+### Cross-Platform Build System
+- Python-based build scripts (not bash)
+- Work identically on Windows, Linux, and macOS
+- Consistent developer experience across platforms
