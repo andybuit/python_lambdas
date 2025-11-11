@@ -5,7 +5,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from src.lambdas.idp_api.handler import lambda_handler
+from services.idp_api.src.handler import lambda_handler
 
 
 @pytest.fixture
@@ -75,9 +75,7 @@ class TestIDPAPIIntegration:
             "httpMethod": "POST",
             "path": "/auth/token",
             "headers": {"Content-Type": "application/json"},
-            "body": json.dumps(
-                {"username": "testuser", "password": "wrongpassword"}
-            ),
+            "body": json.dumps({"username": "testuser", "password": "wrongpassword"}),
         }
 
         # Act

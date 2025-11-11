@@ -1,0 +1,1 @@
+"""IDP API Lambda source code."""

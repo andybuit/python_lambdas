@@ -3,7 +3,7 @@
 from datetime import datetime
 from enum import Enum
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, ConfigDict
 
 
 class PlayerStatus(str, Enum):
@@ -39,6 +39,8 @@ class UpdatePlayerRequest(BaseModel):
 
 class PlayerAccount(BaseModel):
     """Player account model."""
+
+    model_config = ConfigDict(json_encoders={datetime: lambda v: v.isoformat()})
 
     player_id: str = Field(description="Unique player identifier")
     username: str = Field(description="Player username")

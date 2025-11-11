@@ -3,14 +3,14 @@
 import secrets
 from datetime import datetime
 
-from src.lambdas.player_account_api.models import (
+from libs.common.src.exceptions import ConflictException, NotFoundException
+from libs.common.src.logger import get_logger
+from .models import (
     PlayerAccount,
     PlayerStats,
     PlayerStatus,
     UpdatePlayerRequest,
 )
-from src.shared.exceptions import ConflictException, NotFoundException
-from src.shared.logger import get_logger
 
 logger = get_logger(__name__)
 

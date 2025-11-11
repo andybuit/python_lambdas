@@ -6,11 +6,11 @@ from typing import Any
 from aws_lambda_powertools.utilities.typing import LambdaContext
 from pydantic import ValidationError
 
-from src.lambdas.idp_api.models import AuthenticationRequest, TokenResponse
-from src.lambdas.idp_api.service import IDPService
-from src.shared.exceptions import PSNEmulatorException, ValidationException
-from src.shared.logger import get_logger
-from src.shared.models import ErrorResponse
+from libs.common.src.exceptions import PSNEmulatorException, ValidationException
+from libs.common.src.logger import get_logger
+from libs.common.src.models import ErrorResponse
+from .models import AuthenticationRequest, TokenResponse
+from .service import IDPService
 
 logger = get_logger(__name__)
 
@@ -37,7 +37,8 @@ def lambda_handler(event: dict[str, Any], context: LambdaContext) -> dict[str, A
 
     try:
         # Parse request body
-        body = json.loads(event.get("body", "{}"))
+        body_str = event.get("body", "{}") or "{}"
+        body = json.loads(body_str)
         http_method = event.get("httpMethod", "")
         path = event.get("path", "")
 
@@ -63,7 +64,9 @@ def lambda_handler(event: dict[str, Any], context: LambdaContext) -> dict[str, A
 
     except Exception as e:
         logger.exception("Unexpected error", extra={"error": str(e)})
-        return create_error_response(500, "INTERNAL_ERROR", "An unexpected error occurred")
+        return create_error_response(
+            500, "INTERNAL_ERROR", "An unexpected error occurred"
+        )
 
 
 def handle_authentication(body: dict[str, Any]) -> dict[str, Any]:
@@ -86,7 +89,7 @@ def handle_authentication(body: dict[str, Any]) -> dict[str, Any]:
             auth_request.username, auth_request.password
         )
 
-        return create_success_response(200, token_response.model_dump())
+        return create_success_response(200, token_response.model_dump_json())
 
     except ValidationError as e:
         raise ValidationException(str(e)) from e
@@ -115,7 +118,7 @@ def handle_userinfo(event: dict[str, Any]) -> dict[str, Any]:
     service = IDPService()
     user_info = service.get_user_info(token)
 
-    return create_success_response(200, user_info.model_dump())
+    return create_success_response(200, user_info.model_dump_json())
 
 
 def handle_token_refresh(body: dict[str, Any]) -> dict[str, Any]:
@@ -135,27 +138,28 @@ def handle_token_refresh(body: dict[str, Any]) -> dict[str, Any]:
     service = IDPService()
     token_response = service.refresh_token(refresh_token)
 
-    return create_success_response(200, token_response.model_dump())
+    return create_success_response(200, token_response.model_dump_json())
 
 
-def create_success_response(status_code: int, data: dict[str, Any]) -> dict[str, Any]:
+def create_success_response(status_code: int, data: dict[str, Any] | str) -> dict[str, Any]:
     """
     Create a successful API Gateway response.
 
     Args:
         status_code: HTTP status code
-        data: Response data
+        data: Response data (dict or JSON string)
 
     Returns:
         dict: Formatted API Gateway response
     """
+    body = data if isinstance(data, str) else json.dumps(data)
     return {
         "statusCode": status_code,
         "headers": {
             "Content-Type": "application/json",
             "Access-Control-Allow-Origin": "*",
         },
-        "body": json.dumps(data),
+        "body": body,
     }
 
 
@@ -181,5 +185,5 @@ def create_error_response(
             "Content-Type": "application/json",
             "Access-Control-Allow-Origin": "*",
         },
-        "body": json.dumps(error_response.model_dump()),
+        "body": error_response.model_dump_json(),
     }

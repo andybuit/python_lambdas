@@ -5,8 +5,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.lambdas.player_account_api.handler import lambda_handler
-from src.lambdas.player_account_api.models import PlayerAccount, PlayerStatus
+from services.player_account_api.src.handler import lambda_handler
+from services.player_account_api.src.models import PlayerAccount, PlayerStatus
 
 
 @pytest.fixture
@@ -51,7 +51,7 @@ def get_player_event() -> dict:
 class TestPlayerAccountHandler:
     """Test cases for Player Account Lambda handler."""
 
-    @patch("src.lambdas.player_account_api.handler.PlayerAccountService")
+    @patch("services.player_account_api.handler.PlayerAccountService")
     def test_create_player_success(
         self,
         mock_service: MagicMock,
@@ -76,7 +76,7 @@ class TestPlayerAccountHandler:
         body = json.loads(response["body"])
         assert body["username"] == "newplayer"
 
-    @patch("src.lambdas.player_account_api.handler.PlayerAccountService")
+    @patch("services.player_account_api.handler.PlayerAccountService")
     def test_get_player_success(
         self,
         mock_service: MagicMock,
@@ -118,7 +118,7 @@ class TestPlayerAccountHandler:
         # Assert
         assert response["statusCode"] == 404
 
-    @patch("src.lambdas.player_account_api.handler.PlayerAccountService")
+    @patch("services.player_account_api.handler.PlayerAccountService")
     def test_update_player_success(
         self, mock_service: MagicMock, lambda_context: MagicMock
     ) -> None:
@@ -148,7 +148,7 @@ class TestPlayerAccountHandler:
         body = json.loads(response["body"])
         assert body["display_name"] == "Updated Name"
 
-    @patch("src.lambdas.player_account_api.handler.PlayerAccountService")
+    @patch("services.player_account_api.handler.PlayerAccountService")
     def test_delete_player_success(
         self, mock_service: MagicMock, lambda_context: MagicMock
     ) -> None:
@@ -170,7 +170,7 @@ class TestPlayerAccountHandler:
         # Assert
         assert response["statusCode"] == 204
 
-    @patch("src.lambdas.player_account_api.handler.PlayerAccountService")
+    @patch("services.player_account_api.handler.PlayerAccountService")
     def test_list_players_success(
         self, mock_service: MagicMock, lambda_context: MagicMock
     ) -> None:

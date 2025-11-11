@@ -5,12 +5,12 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.lambdas.idp_api.handler import (
+from libs.common.src.exceptions import ValidationException
+from services.idp_api.src.handler import (
     handle_authentication,
     lambda_handler,
 )
-from src.lambdas.idp_api.models import TokenResponse
-from src.shared.exceptions import ValidationException
+from services.idp_api.src.models import TokenResponse
 
 
 @pytest.fixture
@@ -47,7 +47,7 @@ def userinfo_event() -> dict:
 class TestLambdaHandler:
     """Test cases for lambda_handler function."""
 
-    @patch("src.lambdas.idp_api.handler.IDPService")
+    @patch("services.idp_api.handler.IDPService")
     def test_authentication_success(
         self, mock_service: MagicMock, auth_event: dict, lambda_context: MagicMock
     ) -> None:
@@ -69,9 +69,7 @@ class TestLambdaHandler:
         assert body["access_token"] == "access-123"
         assert body["refresh_token"] == "refresh-456"
 
-    def test_authentication_missing_body(
-        self, lambda_context: MagicMock
-    ) -> None:
+    def test_authentication_missing_body(self, lambda_context: MagicMock) -> None:
         """Test authentication with missing body."""
         # Arrange
         event = {
@@ -86,9 +84,7 @@ class TestLambdaHandler:
         # Assert
         assert response["statusCode"] == 400
 
-    def test_invalid_endpoint(
-        self, lambda_context: MagicMock
-    ) -> None:
+    def test_invalid_endpoint(self, lambda_context: MagicMock) -> None:
         """Test request to invalid endpoint."""
         # Arrange
         event = {
@@ -106,7 +102,7 @@ class TestLambdaHandler:
         body = json.loads(response["body"])
         assert body["error"] == "NOT_FOUND"
 
-    @patch("src.lambdas.idp_api.handler.IDPService")
+    @patch("services.idp_api.handler.IDPService")
     def test_userinfo_success(
         self,
         mock_service: MagicMock,
@@ -115,7 +111,7 @@ class TestLambdaHandler:
     ) -> None:
         """Test successful userinfo retrieval."""
         # Arrange
-        from src.lambdas.idp_api.models import UserInfo
+        from services.idp_api.models import UserInfo
 
         mock_user = UserInfo(
             user_id="usr_001",
@@ -132,9 +128,7 @@ class TestLambdaHandler:
         body = json.loads(response["body"])
         assert body["username"] == "testuser"
 
-    def test_userinfo_missing_auth_header(
-        self, lambda_context: MagicMock
-    ) -> None:
+    def test_userinfo_missing_auth_header(self, lambda_context: MagicMock) -> None:
         """Test userinfo with missing authorization header."""
         # Arrange
         event = {
@@ -154,7 +148,7 @@ class TestLambdaHandler:
 class TestHandleAuthentication:
     """Test cases for handle_authentication function."""
 
-    @patch("src.lambdas.idp_api.handler.IDPService")
+    @patch("services.idp_api.handler.IDPService")
     def test_valid_credentials(self, mock_service: MagicMock) -> None:
         """Test authentication with valid credentials."""
         # Arrange

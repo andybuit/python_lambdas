@@ -18,7 +18,16 @@
       "Bash(gh repo create:*)",
       "Bash(gh auth login:*)",
       "Bash(git remote remove:*)",
-      "Bash(git push:*)"
+      "Bash(mv:*)",
+      "Bash(uv run black:*)",
+      "Bash(uv run pip list:*)",
+      "Bash(uv run isort:*)",
+      "Bash(rm:*)",
+      "Bash(find:*)",
+      "Bash(python:*)",
+      "Bash(uv run python:*)",
+      "Bash(git checkout:*)",
+      "Bash(uv run ruff check:*)"
     ],
     "deny": [],
     "ask": []

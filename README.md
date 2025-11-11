@@ -4,7 +4,8 @@ A serverless API service for simulating partner environments, enabling early int
 
 ## Overview
 
-The PSN Partner Emulator provides:
+The PSN Partner Emulator provides a collection of independent serverless microservices:
+
 - **IDP API**: Identity Provider emulation for authentication and token management
 - **Player Account API**: Player account management and statistics tracking
 - **Serverless Architecture**: AWS Lambda functions with API Gateway
@@ -27,9 +28,23 @@ The PSN Partner Emulator provides:
 └────────────┘    └─────────────┘
 ```
 
+## Services
+
+### IDP API
+
+- **Purpose**: Authentication and token management
+- **README**: [services/idp_api/README.md](services/idp_api/README.md)
+- **Endpoints**: `/auth/*`
+
+### Player Account API
+
+- **Purpose**: Player account management and statistics
+- **README**: [services/player_account_api/README.md](services/player_account_api/README.md)
+- **Endpoints**: `/players/*`
+
 ## Tech Stack
 
-- **Language**: Python 3.12
+- **Language**: Python 3.13
 - **Package Manager**: uv (fast Python package manager)
 - **Framework**: AWS Lambda Powertools
 - **Validation**: Pydantic v2
@@ -41,7 +56,8 @@ The PSN Partner Emulator provides:
 ## Prerequisites
 
 ### Required
-- **Python 3.12+**: [Download Python](https://www.python.org/downloads/)
+
+- **Python 3.13+**: [Download Python](https://www.python.org/downloads/)
 - **uv**: Fast Python package manager
   ```bash
   curl -LsSf https://astral.sh/uv/install.sh | sh
@@ -49,11 +65,13 @@ The PSN Partner Emulator provides:
 - **Git**: Version control
 
 ### For Deployment
+
 - **AWS CLI**: [Install AWS CLI](https://aws.amazon.com/cli/)
 - **Terraform**: [Install Terraform](https://www.terraform.io/downloads)
 - **AWS Account**: With appropriate permissions
 
 ### Recommended
+
 - **VS Code**: With recommended extensions (see `.vscode/extensions.json`)
 - **Docker**: For local testing with containerized dependencies
 
@@ -75,7 +93,7 @@ uv sync
 # Activate virtual environment (if needed)
 source .venv/bin/activate  # Linux/macOS
 # or
-.venv\Scripts\activate  # Windows
+.venv\Scripts\activate.bat  # Windows
 
 # Install pre-commit hooks
 uv run pre-commit install
@@ -88,9 +106,9 @@ uv run pre-commit install
 uv run pytest -v
 
 # Check code quality
-uv run black --check src tests
-uv run ruff check src tests
-uv run mypy src
+uv run black --check services libs tests
+uv run ruff check services libs tests
+uv run mypy services libs
 ```
 
 ## Development Workflow
@@ -99,25 +117,48 @@ uv run mypy src
 
 ```
 fips-psn-emulator-service/
-├── src/
-│   ├── lambdas/                 # Lambda functions
-│   │   ├── idp_api/            # Identity Provider API
+├── services/                   # Lambda functions (services)
+│   ├── idp_api/                # Identity Provider API
+│   │   ├── README.md           # Service-specific documentation
+│   │   ├── src/                # 🆕 Source code directory
+│   │   │   ├── __init__.py
 │   │   │   ├── handler.py      # Lambda handler
 │   │   │   ├── service.py      # Business logic
-│   │   │   ├── models.py       # Pydantic models
-│   │   │   └── tests/          # Unit & integration tests
-│   │   └── player_account_api/ # Player Account API
-│   │       ├── handler.py
-│   │       ├── service.py
-│   │       ├── models.py
-│   │       └── tests/
-│   └── shared/                  # Shared utilities
-│       ├── models.py           # Common models
-│       ├── logger.py           # Logging utilities
-│       └── exceptions.py       # Custom exceptions
+│   │   │   └── models.py       # Pydantic models
+│   │   └── tests/              # Unit & integration tests
+│   │       ├── unit/
+│   │       │   ├── __init__.py
+│   │       │   ├── test_handler.py     # Unit tests for handler
+│   │       │   └── test_service.py     # Unit tests for service
+│   │       └── integration/
+│   │           ├── __init__.py
+│   │           └── test_integration.py # Integration tests
+│   └── player_account_api/     # Player Account API
+│       ├── README.md           # Service-specific documentation
+│       ├── src/                # 🆕 Source code directory
+│       │   ├── __init__.py
+│       │   ├── handler.py
+│       │   ├── service.py
+│       │   └── models.py
+│       └── tests/
+│           ├── unit/
+│           │   ├── __init__.py
+│           │   ├── test_handler.py     # Unit tests for handler
+│           │   └── test_service.py     # Unit tests for service
+│           └── integration/
+│               ├── __init__.py
+│               └── test_integration.py # Integration tests
+├── libs/                       # Shared libraries
+│   └── common/                  # Common utilities
+│       ├── src/                # 🆕 Source code directory
+│       │   ├── __init__.py
+│       │   ├── exceptions.py   # Custom exceptions
+│       │   ├── logger.py       # Logging utilities
+│       │   └── models.py       # Common models
+│       └── __init__.py
 ├── tests/
 │   └── e2e/                    # End-to-end tests
-├── terraform/                   # Infrastructure as Code
+├── infra/terraform/            # Infrastructure as Code
 │   ├── main.tf
 │   ├── lambda.tf
 │   ├── api_gateway.tf
@@ -126,6 +167,26 @@ fips-psn-emulator-service/
 ├── .github/                    # GitHub Actions & Copilot instructions
 ├── pyproject.toml              # Project configuration
 └── README.md                   # This file
+```
+
+### 🆕 Code Organization (Recent Updates)
+
+**New `src/` Directory Structure:**
+- All Python source code is now organized in `src/` directories
+- **Lambda Functions**: `services/{name}/src/`
+- **Shared Libraries**: `libs/common/src/`
+- **Tests**: Remain outside `src/` for clear separation
+- **Benefits**: Cleaner deployments, better import organization
+
+**Import Examples:**
+```python
+# Within Lambda files (relative imports)
+from .models import AuthenticationRequest
+from .service import IDPService
+
+# Cross-module imports
+from libs.common.src.exceptions import ValidationException
+from libs.common.src.logger import get_logger
 ```
 
 ### Running Locally
@@ -143,47 +204,53 @@ uv run pytest -v -m unit
 uv run pytest -v -m integration
 
 # With coverage report
-uv run pytest --cov=src --cov-report=html
+uv run pytest --cov=services --cov=libs --cov-report=html
 open htmlcov/index.html  # View coverage report
+
+# Run specific Lambda's unit tests
+uv run pytest services/idp_api/tests/unit/
+
+# Run specific Lambda's integration tests
+uv run pytest services/player_account_api/tests/integration/
 ```
 
 #### Code Formatting
 
 ```bash
 # Format code
-uv run black src tests
-uv run isort src tests
+uv run black services libs tests
+uv run isort services libs tests
 
 # Check formatting (CI mode)
-uv run black --check src tests
-uv run isort --check src tests
+uv run black --check services libs tests
+uv run isort --check services libs tests
 ```
 
 #### Linting and Type Checking
 
 ```bash
 # Lint code
-uv run ruff check src tests
+uv run ruff check services libs tests
 
 # Auto-fix issues
-uv run ruff check --fix src tests
+uv run ruff check --fix services libs tests
 
 # Type checking
-uv run mypy src
+uv run mypy services libs
 
 # Security scanning
-uv run bandit -r src
+uv run bandit -r services libs
 ```
 
 #### Run All Quality Checks
 
 ```bash
 # Single command for all checks
-uv run black --check src tests && \
-uv run isort --check src tests && \
-uv run ruff check src tests && \
-uv run mypy src && \
-uv run pytest
+uv run black --check services libs tests && \
+uv run isort --check services libs tests && \
+uv run ruff check services libs tests && \
+uv run mypy services libs && \
+uv run pytest --cov=services --cov=libs --cov-fail-under=80
 ```
 
 ### Local Testing with Mock Events
@@ -204,7 +271,8 @@ Create a test event file `test_event.json`:
 Run handler locally:
 
 ```python
-from src.lambdas.idp_api.handler import lambda_handler
+# 🆕 Updated import path for new structure
+from services.idp_api.src.handler import lambda_handler
 import json
 
 with open('test_event.json') as f:
@@ -220,15 +288,15 @@ print(json.dumps(response, indent=2))
 2. Set breakpoints in your code
 3. Press `F5` or use Run & Debug panel
 4. Select debug configuration:
-   - "Debug: IDP API Lambda"
-   - "Debug: Player Account API Lambda"
+   - "Debug: IDP API Lambda" (`services.idp_api.src.handler`)
+   - "Debug: Player Account API Lambda" (`services.player_account_api.src.handler`)
    - "Python: pytest" (for tests)
 
 ## Building for Deployment
 
 ### Build Lambda Packages
 
-Lambda packages are automatically built by Terraform, but you can build manually:
+Lambda packages are automatically built by Terraform from `src/` directories, but you can build manually:
 
 ```bash
 # Create build directory
@@ -237,10 +305,10 @@ mkdir -p build
 # Install dependencies to build directory
 uv pip install --target build/python -r pyproject.toml
 
-# Package Lambda
-cd src
-zip -r ../build/lambda.zip .
-cd ..
+# Package Lambda (from src directory)
+cd services/idp_api/src
+zip -r ../../build/idp-api.zip .
+cd ../../..
 ```
 
 ### Package with Dependencies
@@ -249,8 +317,8 @@ For production deployments with dependencies:
 
 ```bash
 # Install production dependencies
-uv pip install --python-platform linux --python-version 3.12 \
-  -r pyproject.toml --target build/python/lib/python3.12/site-packages
+uv pip install --python-platform linux --python-version 3.13 \
+  -r pyproject.toml --target build/python/lib/python3.13/site-packages
 
 # Create layer
 cd build
@@ -263,6 +331,7 @@ cd ..
 ### Prerequisites for Deployment
 
 1. **AWS Credentials**: Configure AWS CLI
+
    ```bash
    aws configure
    # Enter: AWS Access Key ID, Secret Access Key, Region, Output format
@@ -278,7 +347,7 @@ cd ..
 #### 1. Initialize Terraform
 
 ```bash
-cd terraform
+cd infra/terraform
 terraform init
 ```
 
@@ -320,32 +389,26 @@ terraform output api_gateway_url
 
 ### Testing Deployed API
 
+For comprehensive testing examples, see the individual service README files:
+
+- **IDP API Testing**: [services/idp_api/README.md#testing](services/idp_api/README.md#testing)
+- **Player Account API Testing**: [services/player_account_api/README.md#testing](services/player_account_api/README.md#testing)
+
+Quick examples:
+
 ```bash
 # Set API URL
-export API_URL=$(cd terraform && terraform output -raw api_gateway_url)
+export API_URL=$(cd infra/terraform && terraform output -raw api_gateway_url)
 
 # Test IDP API - Authentication
 curl -X POST $API_URL/auth/token \
   -H "Content-Type: application/json" \
   -d '{"username":"testuser","password":"password123"}'
 
-# Save token
-export TOKEN="<access_token_from_response>"
-
-# Test IDP API - Get user info
-curl -X GET $API_URL/auth/userinfo \
-  -H "Authorization: Bearer $TOKEN"
-
 # Test Player Account API - Create player
 curl -X POST $API_URL/players \
   -H "Content-Type: application/json" \
   -d '{"username":"player1","email":"player1@example.com"}'
-
-# Test Player Account API - Get player
-curl -X GET $API_URL/players/<player_id>
-
-# Test Player Account API - List players
-curl -X GET $API_URL/players
 ```
 
 ### Update Deployed Lambda
@@ -353,7 +416,7 @@ curl -X GET $API_URL/players
 After code changes:
 
 ```bash
-cd terraform
+cd infra/terraform
 terraform apply
 ```
 
@@ -362,7 +425,7 @@ Terraform detects code changes via `source_code_hash` and updates Lambdas automa
 ### Destroy Infrastructure
 
 ```bash
-cd terraform
+cd infra/terraform
 terraform destroy
 ```
 
@@ -370,7 +433,7 @@ terraform destroy
 
 ### Lambda Function Environment Variables
 
-Set in Terraform (`lambda.tf`):
+Set in Terraform (`infra/terraform/lambda.tf`):
 
 ```hcl
 environment {
@@ -394,93 +457,35 @@ AWS_REGION=us-east-1
 
 ## API Documentation
 
-### IDP API Endpoints
+For detailed API documentation and examples, see the individual service README files:
 
-#### POST /auth/token
-Authenticate user and receive access token.
+- **IDP API**: [services/idp_api/README.md](services/idp_api/README.md)
 
-**Request:**
-```json
-{
-  "username": "testuser",
-  "password": "password123"
-}
+  - Authentication endpoints
+  - Token management
+  - User information retrieval
+
+- **Player Account API**: [services/player_account_api/README.md](services/player_account_api/README.md)
+  - Player account management
+  - Player statistics
+  - Profile operations
+
+### Quick API Examples
+
+```bash
+# Get API Gateway URL from Terraform
+export API_URL=$(cd infra/terraform && terraform output -raw api_gateway_url)
+
+# Test IDP API - Authentication
+curl -X POST $API_URL/auth/token \
+  -H "Content-Type: application/json" \
+  -d '{"username":"testuser","password":"password123"}'
+
+# Test Player Account API - Create player
+curl -X POST $API_URL/players \
+  -H "Content-Type: application/json" \
+  -d '{"username":"player1","email":"player1@example.com"}'
 ```
-
-**Response:**
-```json
-{
-  "access_token": "...",
-  "refresh_token": "...",
-  "token_type": "Bearer",
-  "expires_in": 3600
-}
-```
-
-#### GET /auth/userinfo
-Get authenticated user information.
-
-**Headers:**
-```
-Authorization: Bearer <access_token>
-```
-
-**Response:**
-```json
-{
-  "user_id": "usr_001",
-  "username": "testuser",
-  "email": "testuser@example.com",
-  "is_active": true
-}
-```
-
-#### POST /auth/refresh
-Refresh access token using refresh token.
-
-**Request:**
-```json
-{
-  "refresh_token": "..."
-}
-```
-
-### Player Account API Endpoints
-
-#### POST /players
-Create a new player account.
-
-**Request:**
-```json
-{
-  "username": "player1",
-  "email": "player1@example.com",
-  "display_name": "Player One"
-}
-```
-
-#### GET /players
-List all player accounts.
-
-#### GET /players/{player_id}
-Get specific player account.
-
-#### PUT /players/{player_id}
-Update player account.
-
-**Request:**
-```json
-{
-  "display_name": "Updated Name",
-  "status": "active"
-}
-```
-
-#### DELETE /players/{player_id}
-Delete player account.
-
-#### GET /players/{player_id}/stats
-Get player statistics.
 
 ## Monitoring and Logging
 
@@ -513,6 +518,7 @@ stats avg(@duration), max(@duration), min(@duration) by bin(5m)
 ### X-Ray Tracing
 
 Enable X-Ray in `terraform.tfvars`:
+
 ```hcl
 enable_xray_tracing = true
 ```
@@ -525,19 +531,22 @@ enable_xray_tracing = true
 
 **Problem**: `ModuleNotFoundError` when Lambda executes
 
-**Solution**: Ensure dependencies are included in Lambda package or use Lambda layers
+**Solution**:
+- Check Terraform `source_dir` paths point to correct `src/` directories
+- Ensure dependencies are included in Lambda package or use Lambda layers
 
 #### 2. Permission Denied
 
 **Problem**: Lambda can't access AWS services
 
-**Solution**: Update IAM role in `terraform/lambda.tf` with required permissions
+**Solution**: Update IAM role in `infra/terraform/lambda.tf` with required permissions
 
 #### 3. Cold Start Latency
 
 **Problem**: First request is slow
 
 **Solutions**:
+
 - Use Lambda warming (scheduled events)
 - Optimize imports (lazy loading)
 - Increase memory allocation
@@ -548,6 +557,7 @@ enable_xray_tracing = true
 **Problem**: Tests pass in CI but fail locally
 
 **Solution**:
+
 ```bash
 # Clean environment
 rm -rf .venv
@@ -555,11 +565,20 @@ uv sync
 uv run pytest -v
 ```
 
-#### 5. Terraform State Lock
+#### 5. Module Not Found Errors
+
+**Problem**: `ModuleNotFoundError` with new `src/` structure
+
+**Solution**: Ensure import paths use new structure:
+- Libraries: `from libs.common.src.exceptions import ...`
+- Tests: `from services.idp_api.src.handler import ...`
+
+#### 6. Terraform State Lock
 
 **Problem**: Terraform state is locked
 
 **Solution**:
+
 ```bash
 terraform force-unlock <lock-id>
 ```
@@ -574,6 +593,7 @@ logging.basicConfig(level=logging.DEBUG)
 ```
 
 Or set environment variable:
+
 ```bash
 export LOG_LEVEL=DEBUG
 ```
@@ -585,21 +605,25 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for development guidelines, coding standa
 ## Recommended Frameworks and Toolkits
 
 ### For Lambda Development
+
 - **AWS Lambda Powertools**: Logging, tracing, metrics (✓ Already integrated)
 - **AWS SAM CLI**: Local testing with `sam local start-api`
 - **LocalStack**: Local AWS emulation for testing
 
 ### For Testing
+
 - **moto**: AWS service mocking (✓ Already included)
 - **pytest-asyncio**: Async test support
 - **Tavern**: YAML-based API testing
 
 ### For API Documentation
+
 - **FastAPI**: Consider migrating to FastAPI for auto-generated docs
 - **OpenAPI**: Generate OpenAPI spec from code
 - **Swagger UI**: Interactive API documentation
 
 ### For Observability
+
 - **AWS X-Ray**: Distributed tracing (configurable)
 - **CloudWatch Insights**: Log analysis
 - **Datadog/New Relic**: Advanced monitoring (optional)
@@ -607,12 +631,14 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for development guidelines, coding standa
 ## Performance Optimization
 
 ### Lambda Cold Start Optimization
+
 - Minimize dependencies
 - Use Lambda layers for common dependencies
 - Lazy load heavy imports
 - Increase memory allocation (improves CPU)
 
 ### Cost Optimization
+
 - Use ARM64 (Graviton2) for 20% cost reduction
 - Adjust memory/timeout to minimum needed
 - Implement caching for repeated queries
@@ -633,29 +659,41 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for development guidelines, coding standa
 ## Support
 
 For issues, questions, or contributions:
+
 - Create an issue in the repository
 - Review [CONTRIBUTING.md](CONTRIBUTING.md)
 - Check existing issues and discussions
 
 ## Roadmap
 
-### Phase 1 (Current)
-- ✅ IDP API Lambda
-- ✅ Player Account API Lambda
+### Phase 1 (Current) ✅
+
+- ✅ IDP API Lambda with authentication and token management
+- ✅ Player Account API Lambda with player management
+- ✅ Individual service documentation
+- ✅ Test organization (unit/integration)
 - ✅ Terraform infrastructure
 - ✅ CI/CD pipeline
+- ✅ **NEW**: src/ directory structure for better organization
+- ✅ **NEW**: Separation of source code and tests
 
 ### Phase 2 (Planned)
+
 - [ ] DynamoDB integration for persistence
 - [ ] JWT token validation
 - [ ] API Gateway authorizer
 - [ ] Additional partner APIs
+- [ ] Service-specific monitoring and alerting
+- [ ] Automated API documentation generation
 
 ### Phase 3 (Future)
+
 - [ ] GraphQL support
 - [ ] WebSocket APIs
 - [ ] Real-time event streaming
 - [ ] Advanced analytics
+- [ ] Service mesh integration
+- [ ] Multi-region deployment
 
 ## Acknowledgments
 

@@ -2,8 +2,8 @@
 
 import pytest
 
-from src.lambdas.idp_api.service import IDPService
-from src.shared.exceptions import AuthenticationException, NotFoundException
+from libs.common.src.exceptions import AuthenticationException, NotFoundException
+from services.idp_api.src.service import IDPService
 
 
 class TestIDPService:

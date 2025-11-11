@@ -10,24 +10,23 @@ A complete serverless Python workspace for developing AWS Lambda-based API servi
 
 ```
 fips-psn-emulator-service/
-├── src/
-│   ├── lambdas/
-│   │   ├── idp_api/              # Identity Provider API Lambda
-│   │   │   ├── handler.py        # Lambda entry point
-│   │   │   ├── service.py        # Business logic
-│   │   │   ├── models.py         # Pydantic models
-│   │   │   └── tests/            # Unit & integration tests
-│   │   └── player_account_api/   # Player Account API Lambda
-│   │       ├── handler.py
-│   │       ├── service.py
-│   │       ├── models.py
-│   │       └── tests/
-│   └── shared/                   # Shared utilities
-│       ├── models.py             # Common models
-│       ├── logger.py             # AWS Lambda Powertools logger
-│       └── exceptions.py         # Custom exception classes
+├── services/                     # Lambda functions (services)
+│   ├── idp_api/                  # Identity Provider API Lambda
+│   │   ├── handler.py            # Lambda entry point
+│   │   ├── service.py            # Business logic
+│   │   ├── models.py             # Pydantic models
+│   │   └── tests/                # Unit & integration tests
+│   └── player_account_api/       # Player Account API Lambda
+│       ├── handler.py
+│       ├── service.py
+│       ├── models.py
+│       └── tests/
+├── libs/                         # Shared libraries
+│   ├── models.py                 # Common models
+│   ├── logger.py                 # AWS Lambda Powertools logger
+│   └── exceptions.py             # Custom exception classes
 ├── tests/e2e/                    # End-to-end tests (placeholder)
-├── terraform/                    # Infrastructure as Code
+├── infra/terraform/              # Infrastructure as Code
 │   ├── main.tf
 │   ├── lambda.tf
 │   ├── api_gateway.tf
@@ -204,11 +203,11 @@ uv run pre-commit install
 # Development
 uv run pytest -v                  # Run tests
 uv run black src tests            # Format code
-uv run ruff check src tests       # Lint
-uv run mypy src                   # Type check
+uv run ruff check services libs tests       # Lint
+uv run mypy services libs                   # Type check
 
 # Deployment
-cd terraform
+cd infra/terraform
 terraform init
 terraform plan
 terraform apply
@@ -232,7 +231,7 @@ terraform apply
 
 3. **Deploy to AWS** (when ready)
    ```bash
-   cd terraform
+   cd infra/terraform
    terraform init
    terraform apply
    ```
@@ -297,28 +296,28 @@ uv sync
 uv run pytest -v
 
 # Run with coverage
-uv run pytest --cov=src --cov-report=html
+uv run pytest --cov=services --cov-report=html
 
 # Format code
-uv run black src tests && uv run isort src tests
+uv run black services libs tests && uv run isort services libs tests
 
 # Lint
-uv run ruff check src tests --fix
+uv run ruff check services libs tests --fix
 
 # Type check
-uv run mypy src
+uv run mypy services libs
 
 # All quality checks
-uv run black --check src tests && \
-uv run isort --check src tests && \
-uv run ruff check src tests && \
-uv run mypy src && \
-uv run pytest --cov=src
+uv run black --check services libs tests && \
+uv run isort --check services libs tests && \
+uv run ruff check services libs tests && \
+uv run mypy services libs && \
+uv run pytest --cov=services
 ```
 
 ### Terraform
 ```bash
-cd terraform
+cd infra/terraform
 
 # Initialize
 terraform init
@@ -343,7 +342,7 @@ terraform output api_gateway_url
 aws logs tail /aws/lambda/psn-emulator-dev-idp-api --follow
 
 # Test deployed API
-export API_URL=$(cd terraform && terraform output -raw api_gateway_url)
+export API_URL=$(cd infra/terraform && terraform output -raw api_gateway_url)
 curl -X POST $API_URL/auth/token \
   -H "Content-Type: application/json" \
   -d '{"username":"testuser","password":"password123"}'
@@ -365,7 +364,7 @@ curl -X POST $API_URL/auth/token \
 
 - **README.md**: Full setup and usage guide
 - **CONTRIBUTING.md**: Development guidelines
-- **terraform/README.md**: Deployment instructions
+- **infra/terraform/README.md**: Deployment instructions
 - **tests/e2e/README.md**: E2E testing guide
 - **.github/copilot-instructions.md**: AI coding guidelines
 
