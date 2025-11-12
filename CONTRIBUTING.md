@@ -36,11 +36,19 @@ git remote add upstream https://github.com/ORIGINAL_OWNER/fips-psn-emulator-serv
 # Install uv if not already installed
 curl -LsSf https://astral.sh/uv/install.sh | sh
 
-# Install dependencies
+# Install dependencies and create virtual environment
 uv sync
+
+# Activate virtual environment
+# On Windows:
+.venv\Scripts\activate
+# On Linux/macOS:
+source .venv/bin/activate
 
 # Install pre-commit hooks
 uv run pre-commit install
+
+# Verify individual service pyproject.toml files are correctly configured
 ```
 
 ### 3. Create a Branch

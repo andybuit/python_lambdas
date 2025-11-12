@@ -198,7 +198,16 @@ All code adheres to the provided coding standards:
 # Setup
 cd fips-psn-emulator-service
 uv sync
+
+# Activate virtual environment
+# On Windows:
+.venv\Scripts\activate
+# On Linux/macOS:
+source .venv/bin/activate
+
 uv run pre-commit install
+
+# Each Lambda service has its own pyproject.toml with specific dependencies
 
 # Development
 uv run pytest -v                  # Run tests
@@ -211,6 +220,9 @@ cd infra/terraform
 terraform init
 terraform plan
 terraform apply
+
+# Alternative: ZIP-based deployment
+uv run python scripts/build_zip.py --services all
 ```
 
 ## Next Steps & Recommendations

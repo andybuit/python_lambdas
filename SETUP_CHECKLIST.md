@@ -15,8 +15,12 @@ Use this checklist to verify your setup and get started with development or depl
 ### Project Setup
 
 - [ ] Clone/navigate to project directory
-- [ ] No root-level dependencies needed - each Lambda is independent
+- [ ] Install dependencies: `uv sync`
+- [ ] Activate virtual environment:
+  - [ ] Windows: `.venv\Scripts\activate`
+  - [ ] Linux/macOS: `source .venv/bin/activate`
 - [ ] Install pre-commit hooks: `uv run pre-commit install` (if configured)
+- [ ] Verify individual service `pyproject.toml` files exist and are correctly configured
 
 ### Verify Installation
 
@@ -24,6 +28,7 @@ Use this checklist to verify your setup and get started with development or depl
 - [ ] Test second Lambda: `uv run python scripts/test.py --service player_account_api --coverage --html`
 - [ ] Test all Lambdas: `uv run python scripts/test.py --service all --coverage --html`
 - [ ] Verify Docker builds: `uv run python scripts/build.py --service all --tag test`
+- [ ] Test ZIP builds: `uv run python scripts/build_zip.py --services idp_api player_account_api`
 
 ## ✅ Development Environment
 

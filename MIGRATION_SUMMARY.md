@@ -233,6 +233,17 @@ python3 scripts/build_all.py --tag v1.0.0
    # Terraform 1.5+
    # uv package manager
    pip install uv
+
+   # Install dependencies and create virtual environment
+   uv sync
+
+   # Activate virtual environment
+   # On Windows:
+   .venv\Scripts\activate
+   # On Linux/macOS:
+   source .venv/bin/activate
+
+   # Note: Each Lambda service has its own pyproject.toml with specific dependencies
    ```
 
 2. **Configure AWS:**

@@ -28,7 +28,19 @@ tests/e2e/
 
 1. AWS credentials configured with access to test environment
 2. Terraform deployed infrastructure in test environment
-3. Python dependencies installed (`uv sync`)
+3. Python dependencies installed:
+   ```bash
+   # From project root
+   uv sync
+
+   # Activate virtual environment
+   # On Windows:
+   .venv\Scripts\activate
+   # On Linux/macOS:
+   source .venv/bin/activate
+
+   # Note: Each service has its own pyproject.toml with specific dependencies
+   ```
 
 ### Configuration
 

@@ -4,11 +4,12 @@ A serverless API service for simulating partner environments, enabling early int
 
 ## Overview
 
-The PSN Partner Emulator provides a collection of independent serverless microservices deployed as **Docker container images**:
+The PSN Partner Emulator provides a collection of independent serverless microservices with **two deployment options**:
 
 - **IDP API**: Identity Provider emulation for authentication and token management
 - **Player Account API**: Player account management and statistics tracking
 - **Docker-Based Architecture**: Lambda functions deployed as container images with isolated dependencies
+- **ZIP + Layers Architecture**: Lambda functions deployed as optimized ZIP packages with shared dependency layers
 - **Independent Services**: Each Lambda can be developed, tested, and deployed independently
 
 ## Architecture
@@ -97,7 +98,15 @@ cd fips-psn-emulator-service
 ### 2. Set Up Development Environment
 
 ```bash
-# No root-level dependencies needed - each Lambda is independent
+# Install dependencies and create virtual environment
+uv sync
+
+# Activate virtual environment
+# On Windows:
+.venv\Scripts\activate
+# On Linux/macOS:
+source .venv/bin/activate
+
 # Install pre-commit hooks (optional)
 uv run pre-commit install  # Only if pre-commit is configured
 ```
@@ -112,6 +121,46 @@ uv run python scripts/test.py --service player_account_api --coverage --html
 # Test all Lambdas
 uv run python scripts/test.py --service all --coverage --html
 ```
+
+## Deployment Options
+
+### Option 1: Docker-Based Deployment (Recommended)
+
+Container-based deployment with isolated dependencies per Lambda.
+
+**Getting Started with Docker:**
+- See [README_DOCKER.md](README_DOCKER.md) for complete guide
+- Use `scripts/build.py` to build Docker images
+- Deploy via Terraform with ECR repositories
+
+### Option 2: ZIP + Layers Deployment
+
+Traditional ZIP deployment with shared dependency layers for optimal size and performance.
+
+**Getting Started with ZIP:**
+- See [scripts/README_ZIP_BUILD.md](scripts/README_ZIP_BUILD.md) for complete guide
+- Use `scripts/build_zip.py` to create optimized packages that read from each service's `pyproject.toml`
+- Upload layers and update Lambda functions
+
+**Quick ZIP Build:**
+```bash
+# Build ZIP packages for all services (reads from each service's pyproject.toml)
+uv run python scripts/build_zip.py
+
+# Build for specific services only
+uv run python scripts/build_zip.py --services idp_api player_account_api
+
+# Clean build
+uv run python scripts/build_zip.py --clean
+```
+
+**Comparison:**
+| Feature | Docker | ZIP + Layers |
+|---------|--------|--------------|
+| Package Size | Larger | Smaller |
+| Cold Starts | Slower | Faster |
+| Dependencies | Full control | Layer constraints |
+| Local Testing | Native | SAM/LocalStack |
 
 ## Development Workflow
 

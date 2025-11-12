@@ -106,7 +106,16 @@ This results in minimal final image sizes.
 # Install uv package manager
 pip install uv
 
-# No need to sync at root - each Lambda is independent
+# Install dependencies and create virtual environment
+uv sync
+
+# Activate virtual environment
+# On Windows:
+.venv\Scripts\activate
+# On Linux/macOS:
+source .venv/bin/activate
+
+# Note: Each Lambda is independent with its own dependencies defined in pyproject.toml
 ```
 
 ### Building Docker Images
@@ -148,6 +157,22 @@ uv run python scripts/test.py --service all --parallel --workers 4
 
 # Run with coverage and HTML report
 uv run python scripts/test.py --service all --coverage --html --html-dir coverage_report
+```
+
+### Building ZIP Packages (Alternative Deployment)
+
+```bash
+# Build ZIP packages for all services (reads from each service's pyproject.toml)
+uv run python scripts/build_zip.py
+
+# Build specific services only
+uv run python scripts/build_zip.py --services idp_api player_account_api
+
+# Clean build
+uv run python scripts/build_zip.py --clean
+
+# Build without common layer
+uv run python scripts/build_zip.py --no-common-layer
 ```
 
 ### Deployment

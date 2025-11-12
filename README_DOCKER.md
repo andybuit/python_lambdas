@@ -89,6 +89,21 @@ The `libs/common/` directory contains shared code:
 - **AWS CLI** - Install from [aws.amazon.com/cli](https://aws.amazon.com/cli/)
 - **Terraform 1.5+** - Install from [terraform.io](https://www.terraform.io/downloads)
 
+### Environment Setup
+
+```bash
+# Install dependencies and create virtual environment
+uv sync
+
+# Activate virtual environment
+# On Windows:
+.venv\Scripts\activate
+# On Linux/macOS:
+source .venv/bin/activate
+
+# Note: Each Lambda service has its own pyproject.toml with specific dependencies
+```
+
 ### AWS Configuration
 ```bash
 # Configure AWS credentials

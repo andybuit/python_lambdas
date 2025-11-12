@@ -1,38 +1,12 @@
-# IAM Role for Lambda Execution
-resource "aws_iam_role" "lambda_execution" {
-  name = "${var.project_name}-${var.environment}-lambda-role"
-
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Action = "sts:AssumeRole"
-        Effect = "Allow"
-        Principal = {
-          Service = "lambda.amazonaws.com"
-        }
-      }
-    ]
-  })
-}
-
-# Attach basic execution policy
-resource "aws_iam_role_policy_attachment" "lambda_basic_execution" {
-  role       = aws_iam_role.lambda_execution.name
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
-}
-
-# Optional: X-Ray tracing policy
-resource "aws_iam_role_policy_attachment" "lambda_xray" {
-  count      = var.enable_xray_tracing ? 1 : 0
-  role       = aws_iam_role.lambda_execution.name
-  policy_arn = "arn:aws:iam::aws:policy/AWSXRayDaemonWriteAccess"
+# Use existing IAM Role for Lambda Execution
+data "aws_iam_role" "lambda_execution" {
+  name = "psn_b2b_ops_tooling_lambda_role"
 }
 
 # IDP API Lambda Function (Container Image)
 resource "aws_lambda_function" "idp_api" {
   function_name = "${var.project_name}-${var.environment}-idp-api"
-  role          = aws_iam_role.lambda_execution.arn
+  role          = data.aws_iam_role.lambda_execution.arn
   package_type  = "Image"
   image_uri     = "${aws_ecr_repository.idp_api.repository_url}:${var.idp_api_image_tag}"
   timeout       = var.lambda_timeout
@@ -51,7 +25,6 @@ resource "aws_lambda_function" "idp_api" {
   }
 
   depends_on = [
-    aws_iam_role_policy_attachment.lambda_basic_execution,
     aws_cloudwatch_log_group.idp_api
   ]
 
@@ -71,7 +44,7 @@ resource "aws_lambda_function" "idp_api" {
 # Player Account API Lambda Function (Container Image)
 resource "aws_lambda_function" "player_account_api" {
   function_name = "${var.project_name}-${var.environment}-player-account-api"
-  role          = aws_iam_role.lambda_execution.arn
+  role          = data.aws_iam_role.lambda_execution.arn
   package_type  = "Image"
   image_uri     = "${aws_ecr_repository.player_account_api.repository_url}:${var.player_account_api_image_tag}"
   timeout       = var.lambda_timeout
@@ -90,7 +63,6 @@ resource "aws_lambda_function" "player_account_api" {
   }
 
   depends_on = [
-    aws_iam_role_policy_attachment.lambda_basic_execution,
     aws_cloudwatch_log_group.player_account_api
   ]
 

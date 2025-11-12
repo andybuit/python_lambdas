@@ -16,7 +16,7 @@ terraform {
     # Configure your S3 backend here
     # bucket = "your-terraform-state-bucket"
     # key    = "psn-emulator/terraform.tfstate"
-    # region = "us-east-1"
+    region = "us-east-1"
   }
 }
 

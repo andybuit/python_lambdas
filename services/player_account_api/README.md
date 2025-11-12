@@ -176,6 +176,15 @@ services/player_account_api/
 ### Running Tests
 
 ```bash
+# Install dependencies and create virtual environment
+uv sync
+
+# Activate virtual environment
+# On Windows:
+.venv\Scripts\activate
+# On Linux/macOS:
+source .venv/bin/activate
+
 # Run tests using the consolidated test script (recommended)
 uv run python scripts/test.py --service player_account_api --coverage --html
 
@@ -259,10 +268,25 @@ print(json.dumps(response, indent=2))
 
 ## Dependencies
 
-- **aws-lambda-powertools**: Logging and utilities
-- **pydantic**: Request/response validation
+The Player Account API dependencies are defined in `pyproject.toml`:
+
+```toml
+dependencies = [
+    "pydantic[email]>=2.10.0",  # Request/response validation with email support
+    "aws-lambda-powertools>=3.4.0",  # Logging and utilities
+]
+```
+
+**Key Dependencies:**
+- **aws-lambda-powertools**: Logging and utilities (shared across services)
+- **pydantic[email]**: Request/response validation with email validation support
 - **boto3**: AWS SDK (for future integrations)
 - **typing**: Type hints support
+
+**Version Management:**
+- Dependencies are version-pinned in `pyproject.toml`
+- ZIP build script reads exact versions for consistent deployments
+- Email validation extras are included for player email validation
 
 ## Environment Variables
 

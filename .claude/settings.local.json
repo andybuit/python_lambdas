@@ -34,7 +34,13 @@
       "Bash(docker run:*)",
       "Bash(curl:*)",
       "Bash(docker stop:*)",
-      "Bash(curl.exe:*)"
+      "Bash(curl.exe:*)",
+      "Bash(powershell:*)",
+      "Bash(terraform apply:*)",
+      "Bash(aws iam list-attached-role-policies:*)",
+      "Bash(terraform state rm:*)",
+      "Bash(terraform state:*)",
+      "Bash(terraform plan:*)"
     ],
     "deny": [],
     "ask": []

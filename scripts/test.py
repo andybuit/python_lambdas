@@ -3,6 +3,10 @@
 Consolidated test script for PSN Emulator Lambda services using pytest.
 Works on Windows, Linux, and macOS.
 
+Each service has its own pyproject.toml and .venv directory. When testing individual
+services, it uses that service's virtual environment. When testing all services,
+it tests each service one by one using their respective .venv directories.
+
 Usage:
     python scripts/test.py [options]
 
@@ -13,7 +17,7 @@ Options:
     --coverage      Generate coverage report
     --html          Generate HTML coverage report
     --html-dir      Directory for HTML coverage report (default: htmlcov)
-    --parallel      Run tests in parallel using pytest-xdist
+    --parallel      Run tests in parallel using pytest-xdist (per service)
     --workers, -n   Number of parallel workers (default: auto)
 """
 
@@ -23,13 +27,13 @@ import sys
 from pathlib import Path
 
 
-def run_command(cmd: list[str], cwd: Path | None = None) -> int:
+def run_command(cmd: list[str], cwd: Path | None = None, env: dict[str, str] | None = None) -> int:
     """Run a command and return the exit code."""
     print(f"Running: {' '.join(cmd)}")
     if cwd:
         print(f"In directory: {cwd}")
 
-    result = subprocess.run(cmd, cwd=cwd)
+    result = subprocess.run(cmd, cwd=cwd, env=env)
     return result.returncode
 
 
@@ -65,6 +69,19 @@ def get_service_path(service_name: str, project_root: Path) -> Path:
     return service_path
 
 
+def get_service_python_executable(service_path: Path) -> Path:
+    """Get the Python executable from the service's .venv directory."""
+    if sys.platform == "win32":
+        python_exe = service_path / ".venv" / "Scripts" / "python.exe"
+    else:
+        python_exe = service_path / ".venv" / "bin" / "python"
+
+    if not python_exe.exists():
+        raise FileNotFoundError(f"Python executable not found: {python_exe}")
+
+    return python_exe
+
+
 def build_pytest_command(
     test_type: str,
     verbose: bool,
@@ -73,9 +90,16 @@ def build_pytest_command(
     html_dir: str,
     parallel: bool,
     workers: str,
+    use_service_venv: bool = True,
 ) -> list[str]:
     """Build the pytest command with appropriate options."""
-    pytest_cmd = ["uv", "run", "pytest"]
+
+    if use_service_venv:
+        # Will use the service's Python executable directly
+        pytest_cmd = ["pytest"]
+    else:
+        # Use uv run pytest (fallback)
+        pytest_cmd = ["uv", "run", "pytest"]
 
     # Add test type marker
     if test_type == "unit":
@@ -108,6 +132,28 @@ def build_pytest_command(
     return pytest_cmd
 
 
+def setup_service_environment(service_path: Path) -> dict[str, str]:
+    """Set up environment variables for the service's virtual environment."""
+    import os
+
+    # Copy current environment
+    env = os.environ.copy()
+
+    # Add service's .venv to PATH
+    if sys.platform == "win32":
+        venv_bin = str(service_path / ".venv" / "Scripts")
+    else:
+        venv_bin = str(service_path / ".venv" / "bin")
+
+    # Prepend the service's virtual environment bin directory to PATH
+    env["PATH"] = f"{venv_bin}{os.pathsep}{env.get('PATH', '')}"
+
+    # Set PYTHONPATH to ensure service's source is found
+    env["PYTHONPATH"] = str(service_path / "src")
+
+    return env
+
+
 def run_service_tests(
     service_name: str,
     test_type: str,
@@ -119,7 +165,7 @@ def run_service_tests(
     workers: str,
     project_root: Path,
 ) -> int:
-    """Run tests for a specific service."""
+    """Run tests for a specific service using its own virtual environment."""
     try:
         service_path = get_service_path(service_name, project_root)
     except ValueError as e:
@@ -131,11 +177,18 @@ def run_service_tests(
     print(f"{'='*60}")
     print(f"Service path: {service_path}")
     print(f"Test type: {test_type}")
+    print(f"Using service virtual environment: {service_path / '.venv'}")
     print(f"{'='*60}\n")
 
     # Check if service directory exists
     if not service_path.exists():
         print(f"\n[ERROR] Service directory does not exist: {service_path}")
+        return 1
+
+    # Check if pyproject.toml exists
+    pyproject_path = service_path / "pyproject.toml"
+    if not pyproject_path.exists():
+        print(f"\n[ERROR] pyproject.toml not found: {pyproject_path}")
         return 1
 
     # Check if tests directory exists
@@ -144,15 +197,38 @@ def run_service_tests(
         print(f"\n[ERROR] Tests directory does not exist: {tests_path}")
         return 1
 
-    # Install dev dependencies first
-    print("Installing dev dependencies...")
-    sync_cmd = ["uv", "sync", "--extra", "dev"]
-    sync_exit_code = run_command(sync_cmd, cwd=service_path)
-    if sync_exit_code != 0:
-        print(f"\n[ERROR] Failed to install dev dependencies for {service_name}")
-        return sync_exit_code
+    # Check if .venv exists
+    venv_path = service_path / ".venv"
+    if not venv_path.exists():
+        print(f"\n[INFO] Virtual environment not found for {service_name}, creating it...")
+        # Create virtual environment and install dependencies
+        sync_cmd = ["uv", "sync", "--dev"]
+        sync_exit_code = run_command(sync_cmd, cwd=service_path)
+        if sync_exit_code != 0:
+            print(f"\n[ERROR] Failed to create virtual environment for {service_name}")
+            return sync_exit_code
+    else:
+        print(f"[INFO] Using existing virtual environment for {service_name}")
 
-    # Build pytest command
+        # Update dependencies if needed
+        print("Updating dependencies...")
+        sync_cmd = ["uv", "sync", "--dev"]
+        sync_exit_code = run_command(sync_cmd, cwd=service_path)
+        if sync_exit_code != 0:
+            print(f"\n[WARNING] Failed to update dependencies for {service_name} (continuing anyway)")
+
+    # Get the service's Python executable
+    try:
+        python_exe = get_service_python_executable(service_path)
+        print(f"[INFO] Using Python: {python_exe}")
+    except FileNotFoundError as e:
+        print(f"\n[ERROR] {e}")
+        return 1
+
+    # Set up environment for the service
+    service_env = setup_service_environment(service_path)
+
+    # Build pytest command using service's virtual environment
     pytest_cmd = build_pytest_command(
         test_type=test_type,
         verbose=verbose,
@@ -161,13 +237,20 @@ def run_service_tests(
         html_dir=html_dir,
         parallel=parallel,
         workers=workers,
+        use_service_venv=True,
     )
 
+    # Modify pytest command to use the service's Python executable
+    # Note: pytest should be in the venv's Scripts/bin directory, so we don't need -m pytest
+    pytest_cmd = [str(python_exe), "-m", "pytest"] + pytest_cmd[1:]
+
     # Run tests
-    exit_code = run_command(pytest_cmd, cwd=service_path)
+    exit_code = run_command(pytest_cmd, cwd=service_path, env=service_env)
 
     if exit_code == 0:
         print(f"\n[OK] All tests passed for {service_name}!")
+        if coverage:
+            print(f"[INFO] Coverage report generated in {service_path / 'htmlcov' if html else service_path}")
     else:
         print(f"\n[ERROR] Tests failed for {service_name} with exit code {exit_code}")
 
@@ -184,7 +267,7 @@ def test_services(
     parallel: bool,
     workers: str,
 ) -> int:
-    """Test one or more services."""
+    """Test one or more services using their individual virtual environments."""
     # Get project root (this script is in scripts/, so go up one level)
     project_root = Path(__file__).parent.parent
 
@@ -201,13 +284,16 @@ def test_services(
     print(f"Test type: {test_type}")
     print(f"Coverage: {coverage}")
     print(f"HTML Report: {html}")
-    print(f"Parallel: {parallel}")
+    print(f"Parallel: {parallel} (per service)")
+    print(f"Note: Each service will be tested individually using its own .venv")
     print(f"{'='*80}\n")
 
     overall_exit_code = 0
 
-    # Test each service
-    for service in services_to_test:
+    # Test each service one by one
+    for i, service in enumerate(services_to_test, 1):
+        print(f"\n[INFO] Testing service {i}/{len(services_to_test)}: {service}")
+
         exit_code = run_service_tests(
             service_name=service,
             test_type=test_type,
@@ -222,13 +308,26 @@ def test_services(
 
         if exit_code != 0:
             overall_exit_code = exit_code
+            if "all" in services:
+                # When testing all services, continue testing even if one fails
+                print(f"\n[WARNING] Service {service} failed, continuing with remaining services...")
+                continue
+            else:
+                # When testing specific services, stop on first failure
+                print(f"\n[ERROR] Service {service} failed. Stopping.")
+                break
 
     # Print summary
     print(f"\n{'='*80}")
     if overall_exit_code == 0:
         print("[OK] All service tests passed!")
+        print(f"[INFO] Tested {len(services_to_test)} service(s) successfully")
     else:
         print("[ERROR] Some tests failed. Check the output above for details.")
+        failed_services = []
+        for service in services_to_test:
+            # We could track which ones failed, but for now just indicate there were failures
+            pass
     print(f"{'='*80}")
 
     return overall_exit_code

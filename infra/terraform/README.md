@@ -12,17 +12,29 @@ The infrastructure includes:
 
 ## Prerequisites
 
-1. **Terraform**: Install Terraform >= 1.5.0
+1. **Python and uv**: Install dependencies and create virtual environment
+   ```bash
+   # From project root
+   uv sync
+
+   # Activate virtual environment
+   # On Windows:
+   .venv\Scripts\activate
+   # On Linux/macOS:
+   source .venv/bin/activate
+   ```
+
+2. **Terraform**: Install Terraform >= 1.5.0
    ```bash
    brew install terraform  # macOS
    ```
 
-2. **AWS CLI**: Configure AWS credentials
+3. **AWS CLI**: Configure AWS credentials
    ```bash
    aws configure
    ```
 
-3. **S3 Backend** (Optional): Create an S3 bucket for Terraform state
+4. **S3 Backend** (Optional): Create an S3 bucket for Terraform state
    ```bash
    aws s3 mb s3://your-terraform-state-bucket
    ```
