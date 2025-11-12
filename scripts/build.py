@@ -7,7 +7,7 @@ Usage:
     python scripts/build.py [options]
 
 Options:
-    --service, -s   Service to build: idp_api, player_account_api, or all (default: all)
+    --service, -s   Service to build: idp_api, player_account_api etc, or all (default: all)
     --tag, -t       Docker image tag (default: latest)
     --platform      Target platform (default: linux/amd64)
     --no-cache      Build without using cache
@@ -30,25 +30,46 @@ def run_command(cmd: list[str], check: bool = True) -> subprocess.CompletedProce
     return result
 
 
-def get_service_config(service_name: str) -> dict[str, str]:
-    """Get configuration for a specific service."""
-    service_configs = {
-        "idp_api": {
-            "service_dir": "idp_api",
-            "image_name": "fips-psn-idp-api",
-            "display_name": "IDP API",
-        },
-        "player_account_api": {
-            "service_dir": "player_account_api",
-            "image_name": "fips-psn-player-account-api",
-            "display_name": "Player Account API",
-        },
-    }
+def discover_services(project_root: Path) -> list[str]:
+    """Dynamically discover all service directories in the services folder."""
+    services_dir = project_root / "services"
 
-    if service_name not in service_configs:
+    if not services_dir.exists():
+        raise FileNotFoundError(f"Services directory not found: {services_dir}")
+
+    # Find all subdirectories that contain at least a src/ or tests/ directory
+    services = []
+    for item in services_dir.iterdir():
+        if item.is_dir() and not item.name.startswith('__'):
+            # Check if this looks like a valid service directory
+            has_src = (item / "src").exists()
+            has_tests = (item / "tests").exists()
+            has_pyproject = (item / "pyproject.toml").exists()
+
+            if (has_src or has_tests) and has_pyproject:
+                services.append(item.name)
+
+    return sorted(services)
+
+
+def get_service_config(service_name: str, project_root: Path) -> dict[str, str]:
+    """Get configuration for a specific service dynamically."""
+    service_path = project_root / "services" / service_name
+
+    if not service_path.exists():
         raise ValueError(f"Unknown service: {service_name}")
 
-    return service_configs[service_name]
+    # Generate image name from service name (snake_case to kebab-case)
+    image_name = f"fips-psn-{service_name.replace('_', '-')}"
+
+    # Generate display name (snake_case to Title Case)
+    display_name = " ".join(word.title() for word in service_name.split("_"))
+
+    return {
+        "service_dir": service_name,
+        "image_name": image_name,
+        "display_name": display_name,
+    }
 
 
 def build_docker_image(
@@ -59,7 +80,7 @@ def build_docker_image(
     project_root: Path,
 ) -> int:
     """Build the Docker image for a specific service."""
-    config = get_service_config(service_name)
+    config = get_service_config(service_name, project_root)
 
     print(f"\n{'='*60}")
     print(f"Building {config['display_name']} Lambda Docker Image")
@@ -103,7 +124,7 @@ def push_to_ecr(
     project_root: Path,
 ) -> int:
     """Push the Docker image to ECR."""
-    config = get_service_config(service_name)
+    config = get_service_config(service_name, project_root)
 
     if service_name not in ecr_repo_map:
         print(f"\n[ERROR] No ECR repository found for service '{service_name}'")
@@ -152,7 +173,7 @@ def build_services(
 
     # Determine which services to build
     if "all" in services:
-        services_to_build = ["idp_api", "player_account_api"]
+        services_to_build = discover_services(project_root)
     else:
         services_to_build = services
 
@@ -212,16 +233,24 @@ def build_services(
 
 def main() -> int:
     """Main entry point."""
+    project_root = Path(__file__).parent.parent
+
+    try:
+        available_services = discover_services(project_root)
+    except FileNotFoundError:
+        print("Error: Services directory not found")
+        return 1
+
     parser = argparse.ArgumentParser(
         description="Build Docker images for PSN Emulator Lambda services"
     )
     parser.add_argument(
         "--service",
         "-s",
-        choices=["idp_api", "player_account_api", "all"],
+        choices=available_services + ["all"],
         nargs="+",
         default=["all"],
-        help="Service(s) to build (default: all)",
+        help=f"Service(s) to build. Available: {', '.join(available_services)} (default: all)",
     )
     parser.add_argument(
         "--tag", "-t", default="latest", help="Docker image tag (default: latest)"

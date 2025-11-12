@@ -7,7 +7,7 @@ Usage:
     python scripts/test.py [options]
 
 Options:
-    --service, -s   Service to test: idp_api, player_account_api, or all (default: all)
+    --service, -s   Service to test: idp_api, player_account_api etc, or all (default: all)
     --type, -t      Test type: unit, integration, or all (default: all)
     --verbose, -v   Verbose output
     --coverage      Generate coverage report
@@ -33,17 +33,36 @@ def run_command(cmd: list[str], cwd: Path | None = None) -> int:
     return result.returncode
 
 
+def discover_services(project_root: Path) -> list[str]:
+    """Dynamically discover all service directories in the services folder."""
+    services_dir = project_root / "services"
+
+    if not services_dir.exists():
+        raise FileNotFoundError(f"Services directory not found: {services_dir}")
+
+    # Find all subdirectories that contain at least a src/ or tests/ directory
+    services = []
+    for item in services_dir.iterdir():
+        if item.is_dir() and not item.name.startswith('__'):
+            # Check if this looks like a valid service directory
+            has_src = (item / "src").exists()
+            has_tests = (item / "tests").exists()
+            has_pyproject = (item / "pyproject.toml").exists()
+
+            if (has_src or has_tests) and has_pyproject:
+                services.append(item.name)
+
+    return sorted(services)
+
+
 def get_service_path(service_name: str, project_root: Path) -> Path:
     """Get the path to a service directory."""
-    service_paths = {
-        "idp_api": project_root / "services" / "idp_api",
-        "player_account_api": project_root / "services" / "player_account_api",
-    }
+    service_path = project_root / "services" / service_name
 
-    if service_name not in service_paths:
+    if not service_path.exists():
         raise ValueError(f"Unknown service: {service_name}")
 
-    return service_paths[service_name]
+    return service_path
 
 
 def build_pytest_command(
@@ -171,7 +190,7 @@ def test_services(
 
     # Determine which services to test
     if "all" in services:
-        services_to_test = ["idp_api", "player_account_api"]
+        services_to_test = discover_services(project_root)
     else:
         services_to_test = services
 
@@ -217,16 +236,24 @@ def test_services(
 
 def main() -> int:
     """Main entry point."""
+    project_root = Path(__file__).parent.parent
+
+    try:
+        available_services = discover_services(project_root)
+    except FileNotFoundError:
+        print("Error: Services directory not found")
+        return 1
+
     parser = argparse.ArgumentParser(
         description="Run tests for PSN Emulator Lambda services"
     )
     parser.add_argument(
         "--service",
         "-s",
-        choices=["idp_api", "player_account_api", "all"],
+        choices=available_services + ["all"],
         nargs="+",
         default=["all"],
-        help="Service(s) to test (default: all)",
+        help=f"Service(s) to test. Available: {', '.join(available_services)} (default: all)",
     )
     parser.add_argument(
         "--type",

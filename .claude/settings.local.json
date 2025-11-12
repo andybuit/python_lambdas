@@ -33,7 +33,8 @@
       "Bash(uv run mypy:*)",
       "Bash(docker run:*)",
       "Bash(curl:*)",
-      "Bash(docker stop:*)"
+      "Bash(docker stop:*)",
+      "Bash(curl.exe:*)"
     ],
     "deny": [],
     "ask": []

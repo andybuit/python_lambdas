@@ -26,7 +26,43 @@ import sys
 from pathlib import Path
 from typing import Any, cast
 
-SERVICES = ["idp_api", "player_account_api"]
+def discover_services(project_root: Path) -> list[str]:
+    """Dynamically discover all service directories in the services folder."""
+    services_dir = project_root / "services"
+
+    if not services_dir.exists():
+        raise FileNotFoundError(f"Services directory not found: {services_dir}")
+
+    # Find all subdirectories that contain at least a src/ or tests/ directory
+    services = []
+    for item in services_dir.iterdir():
+        if item.is_dir() and not item.name.startswith('__'):
+            # Check if this looks like a valid service directory
+            has_src = (item / "src").exists()
+            has_tests = (item / "tests").exists()
+            has_pyproject = (item / "pyproject.toml").exists()
+
+            if (has_src or has_tests) and has_pyproject:
+                services.append(item.name)
+
+    return sorted(services)
+
+
+def generate_service_map(services: list[str]) -> dict[str, dict[str, str]]:
+    """Generate service mapping dynamically from service names."""
+    service_map = {}
+
+    for service_name in services:
+        # Generate Terraform output keys based on naming convention
+        ecr_key = f"ecr_repository_{service_name}"
+        lambda_key = f"{service_name}_lambda_name"
+
+        service_map[service_name] = {
+            "ecr_key": ecr_key,
+            "lambda_key": lambda_key,
+        }
+
+    return service_map
 
 
 def run_command(
@@ -65,10 +101,10 @@ def ecr_login(region: str) -> bool:
             check=False,
         )
 
-        print("✓ Successfully authenticated to ECR")
+        print("Successfully authenticated to ECR")
         return True
     except subprocess.CalledProcessError as e:
-        print(f"✗ Failed to authenticate to ECR: {e}")
+        print(f"Failed to authenticate to ECR: {e}")
         return False
 
 
@@ -80,7 +116,7 @@ def get_terraform_outputs() -> dict[str, Any]:
         result = run_command(["terraform", "output", "-json"], cwd=terraform_dir)
         return cast("dict[str, Any]", json.loads(result.stdout))
     except (subprocess.CalledProcessError, json.JSONDecodeError) as e:
-        print(f"✗ Failed to get Terraform outputs: {e}")
+        print(f"Failed to get Terraform outputs: {e}")
         return {}
 
 
@@ -102,10 +138,10 @@ def update_lambda_function(function_name: str, image_uri: str, region: str) -> b
                 region,
             ]
         )
-        print(f"✓ Successfully updated {function_name}")
+        print(f"Successfully updated {function_name}")
         return True
     except subprocess.CalledProcessError as e:
-        print(f"✗ Failed to update {function_name}: {e}")
+        print(f"Failed to update {function_name}: {e}")
         return False
 
 
@@ -136,16 +172,15 @@ def deploy(
 
         build_cmd = [
             sys.executable,
-            str(project_root / "scripts" / "build_all.py"),
+            str(project_root / "scripts" / "build.py"),
             "--tag",
             tag,
-            "--services",
-            ",".join(services),
-        ]
+            "--service",
+        ] + services
 
         result = subprocess.run(build_cmd)
         if result.returncode != 0:
-            print("\n✗ Build failed")
+            print("\nBuild failed")
             return 1
 
     # Step 2: Authenticate to ECR
@@ -155,27 +190,18 @@ def deploy(
     # Step 3: Get Terraform outputs for ECR repos and Lambda names
     outputs = get_terraform_outputs()
     if not outputs:
-        print("\n✗ Failed to get deployment information from Terraform")
+        print("\nFailed to get deployment information from Terraform")
         print("   Make sure Terraform has been applied successfully")
         return 1
 
-    # Step 4: Push images and update Lambda functions
-    service_map = {
-        "idp_api": {
-            "ecr_key": "ecr_repository_idp_api",
-            "lambda_key": "idp_api_lambda_name",
-        },
-        "player_account_api": {
-            "ecr_key": "ecr_repository_player_account_api",
-            "lambda_key": "player_account_api_lambda_name",
-        },
-    }
+    # Step 4: Generate dynamic service mapping and deploy
+    service_map = generate_service_map(services)
 
     results = {}
 
     for service_id in services:
         if service_id not in service_map:
-            print(f"\n✗ Unknown service: {service_id}")
+            print(f"\nUnknown service: {service_id}")
             results[service_id] = False
             continue
 
@@ -184,7 +210,7 @@ def deploy(
         lambda_name = outputs.get(service["lambda_key"], {}).get("value")
 
         if not ecr_repo or not lambda_name:
-            print(f"\n✗ Missing deployment info for {service_id}")
+            print(f"\nMissing deployment info for {service_id}")
             results[service_id] = False
             continue
 
@@ -209,7 +235,7 @@ def deploy(
             results[service_id] = success
 
         except subprocess.CalledProcessError as e:
-            print(f"\n✗ Deployment failed for {service_id}: {e}")
+            print(f"\nDeployment failed for {service_id}: {e}")
             results[service_id] = False
 
     # Print summary
@@ -218,7 +244,7 @@ def deploy(
     print(f"{'='*60}")
 
     for service_id, success in results.items():
-        status = "✓" if success else "✗"
+        status = "OK" if success else "FAIL"
         print(f"{status} {service_id}: {'SUCCESS' if success else 'FAILED'}")
 
     success_count = sum(1 for s in results.values() if s)
@@ -231,6 +257,14 @@ def deploy(
 
 def main() -> int:
     """Main entry point."""
+    project_root = Path(__file__).parent.parent
+
+    try:
+        available_services = discover_services(project_root)
+    except FileNotFoundError:
+        print("Error: Services directory not found")
+        return 1
+
     parser = argparse.ArgumentParser(description="Deploy Lambda functions to AWS")
     parser.add_argument(
         "--tag", "-t", default="latest", help="Docker image tag (default: latest)"
@@ -243,7 +277,8 @@ def main() -> int:
         help="Environment to deploy to (default: dev)",
     )
     parser.add_argument(
-        "--services", help="Comma-separated list of services (default: all)"
+        "--services",
+        help=f"Comma-separated list of services. Available: {', '.join(available_services)} (default: all)"
     )
     parser.add_argument(
         "--no-build",
@@ -259,8 +294,13 @@ def main() -> int:
     # Parse services
     if args.services:
         services = [s.strip() for s in args.services.split(",")]
+        # Validate services against discovered ones
+        for service in services:
+            if service not in available_services:
+                print(f"Error: Unknown service '{service}'. Available services: {', '.join(available_services)}")
+                return 1
     else:
-        services = SERVICES
+        services = available_services
 
     return deploy(
         tag=args.tag,

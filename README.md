@@ -181,18 +181,21 @@ fips-psn-emulator-service/
 ### Docker-Based Architecture
 
 **Per-Lambda Independence:**
+
 - Each Lambda has its own `Dockerfile` with multi-stage build
 - Each Lambda has its own `pyproject.toml` with minimal dependencies
 - Docker images built from `public.ecr.aws/lambda/python:3.13` base image
 - Images pushed to Amazon ECR for Lambda deployment
 
 **Key Benefits:**
+
 - **Dependency Isolation**: Each Lambda only includes packages it needs
 - **Smaller Images**: Multi-stage builds remove build tools from final image
 - **Independent Deployment**: Update one Lambda without affecting others
 - **Consistent Environment**: Same container runtime locally and in AWS
 
 **Import Examples:**
+
 ```python
 # Within Lambda files (relative imports)
 from .models import AuthenticationRequest
@@ -240,12 +243,6 @@ uv run mypy src/
 
 # Or use the consolidated test script which includes quality checks
 uv run python scripts/test.py --service idp_api --coverage --html
-
-# Build Docker images
-uv run python scripts/build.py --service idp_api --tag dev
-
-# Build all Lambda images
-uv run python scripts/build.py --service all --tag v1.0.0
 ```
 
 ### Local Testing with Docker
@@ -260,7 +257,7 @@ uv run python scripts/build.py --service idp_api --tag local
 docker run -p 9000:8080 fips-psn-idp-api:local
 
 # In another terminal, test with mock event
-curl -XPOST "http://localhost:9000/2015-03-31/functions/function/invocations" \
+curl -X POST "http://localhost:9000/2015-03-31/functions/function/invocations" \
   -d '{
     "httpMethod": "POST",
     "path": "/auth/token",
@@ -327,7 +324,7 @@ uv run python scripts/build.py --service all --tag v1.0.0 --push --ecr-repo-map 
 
 ```bash
 # Verify images were built
-docker images | grep fips-psn
+docker images | findstr fips-psn
 
 # Test image locally
 docker run -p 9000:8080 fips-psn-idp-api:v1.0.0
@@ -362,6 +359,7 @@ terraform apply
 ```
 
 This creates:
+
 - ECR repositories for each Lambda
 - Lambda functions (placeholder images initially)
 - API Gateway configuration
@@ -465,11 +463,13 @@ AWS_REGION=us-east-1
 ### Available Endpoints
 
 **IDP API (`/auth/*`)**
+
 - `POST /auth/token` - User authentication
 - `GET /auth/userinfo` - Get user information (requires Bearer token)
 - `POST /auth/refresh` - Refresh access token
 
 **Player Account API (`/players/*`)**
+
 - `POST /players` - Create player
 - `GET /players` - List all players
 - `GET /players/{player_id}` - Get specific player
@@ -482,6 +482,7 @@ AWS_REGION=us-east-1
 For comprehensive API documentation and examples, see the individual service README files:
 
 - **IDP API**: [services/idp_api/README.md](services/idp_api/README.md)
+
   - Authentication endpoints with request/response examples
   - Token management and validation
   - User information retrieval
@@ -553,6 +554,7 @@ enable_xray_tracing = true
 **Problem**: Docker build fails with errors
 
 **Solution**:
+
 ```bash
 # Check Docker is running
 docker ps
@@ -572,6 +574,7 @@ pip install --upgrade uv
 **Problem**: `ModuleNotFoundError` when Lambda executes
 
 **Solution**:
+
 - Check Dockerfile copies all necessary files from `src/` directories
 - Verify common library is copied to correct path in container
 - Check Lambda handler path in Terraform configuration
@@ -582,6 +585,7 @@ pip install --upgrade uv
 **Problem**: Cannot push images to ECR
 
 **Solution**:
+
 ```bash
 # Verify AWS credentials
 aws sts get-caller-identity
@@ -595,6 +599,7 @@ aws ecr get-login-password --region us-east-1 | docker login --username AWS --pa
 **Problem**: Lambda function update fails
 
 **Solution**:
+
 ```bash
 # Check Lambda exists
 aws lambda list-functions --query 'Functions[?contains(FunctionName, `psn-emulator`)].FunctionName'
@@ -612,6 +617,7 @@ terraform output ecr_repository_idp_api
 **Problem**: First request is slow
 
 **Solutions**:
+
 - Optimize Docker image size (multi-stage builds already configured)
 - Lazy load heavy imports in Lambda code
 - Increase memory allocation (improves CPU)
@@ -622,6 +628,7 @@ terraform output ecr_repository_idp_api
 **Problem**: Tests fail when running locally
 
 **Solution**:
+
 ```bash
 # Ensure dependencies are installed for specific Lambda
 cd services/idp_api
@@ -640,6 +647,7 @@ python -c "from services.idp_api.src.handler import lambda_handler; print('Impor
 **Problem**: Terraform state is locked
 
 **Solution**:
+
 ```bash
 terraform force-unlock <lock-id>
 ```
