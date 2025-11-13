@@ -225,6 +225,19 @@ name = "cz_conventional_commits"
 version = "0.1.0"
 tag_format = "v$version"
 
+# UV Workspace Configuration
+[tool.uv.workspace]
+members = [
+    "libs/*",
+    "services/*",
+]
+exclude = [
+    "*/__pycache__",  # Excluded 
+]
+
+[tool.uv.sources]
+fips-psn-common = { workspace = true }
+
 [dependency-groups]
 dev = [
     "black>=25.11.0",

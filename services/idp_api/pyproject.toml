@@ -6,15 +6,15 @@ requires-python = ">=3.13"
 
 dependencies = [
     "pydantic[email]>=2.10.0",
-    "aws-lambda-powertools>=3.4.0",
+    "aws-lambda-powertools>=3.18.0",
+    "fips-psn-common",  # Workspace dependency
 ]
-
-# Include common library as a local dependency
-[tool.hatch.build.targets.wheel.sources]
-"libs/common" = "libs/common"
 
 [project.optional-dependencies]
 dev = [
+    "black>=24.10.0",
+    "ruff>=0.8.0",
+    "mypy>=1.13.0",
     "pytest>=8.3.0",
     "pytest-cov>=6.0.0",
     "pytest-mock>=3.14.0",

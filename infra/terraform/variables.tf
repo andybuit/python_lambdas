@@ -62,3 +62,28 @@ variable "player_account_api_image_tag" {
   type        = string
   default     = "latest"
 }
+
+# ZIP deployment variables
+variable "use_zip_deployment" {
+  description = "Use ZIP-based Lambda deployment instead of container images"
+  type        = bool
+  default     = false
+}
+
+variable "shared_layer_zip_path" {
+  description = "Path to shared layer ZIP file"
+  type        = string
+  default     = "../../build/zip/shared-layer.zip"
+}
+
+variable "idp_api_zip_path" {
+  description = "Path to IDP API ZIP file"
+  type        = string
+  default     = "../../build/zip/idp_api.zip"
+}
+
+variable "player_account_api_zip_path" {
+  description = "Path to Player Account API ZIP file"
+  type        = string
+  default     = "../../build/zip/player_account_api.zip"
+}

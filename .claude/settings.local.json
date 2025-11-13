@@ -40,7 +40,10 @@
       "Bash(aws iam list-attached-role-policies:*)",
       "Bash(terraform state rm:*)",
       "Bash(terraform state:*)",
-      "Bash(terraform plan:*)"
+      "Bash(terraform plan:*)",
+      "Bash(uv tree:*)",
+      "Bash(uv list:*)",
+      "Bash(unzip:*)"
     ],
     "deny": [],
     "ask": []
